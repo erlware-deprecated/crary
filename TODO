@@ -1,0 +1,64 @@
+* add 2008 to copyrights
+* rewrite chunked body reader (see todo in aitch_body)
+* look into in-file 'todo's
+* create example that uses put/post (counter?)
+* avoid denial of services dos (max header lengths, max line lengths,
+  max body chunk lengths, etc)
+* logging
+  * access
+  * error?
+* support specifying which ip address to listen on
+* methods: head, put, post, 
+* can the controller pass the body size (or "chunked") to the sock so the sock
+  can limit the amount that can be read
+* is it possible to keep writes safe?
+* propogate timeouts to the right places in aitch_sock
+* document exactly what's expected of a handler (ie should only use
+  aitch_socket:read(), must be exact in bytes read/written, etc)
+* transfer codings (3.6)
+  + chunked
+  + identity
+  + gzip
+  + compress
+  + deflate
+* absolute uris in http request line (ignore host header, but require it)
+* throttling
+* would it be faster to buffer and write out chunks when the buffer is
+  full instead of writing out a chunk for each write(). also allows easier
+  error handling
+* allow hostname to be configured, fix aitch:uri() to fall back on that (http 1.0)
+* version not supported error
+* re-read rfc
+* make sure that exceptions are consistent and documented
+* make sure we aren't ending up with stale procs
+* test chunked put
+* allow internal server errors and stuff to be overriden
+* allow internal server errors and stuff to be configured (ie is stack shown, etc)
+
+aitch_dir_listing:
+  * html escpae file names
+  * url quote file name in ahref
+  * range (partial)
+  * would it be possible to use sendfile()?
+  * extendable list of mime types
+  * return last-modified headers
+  * support head
+  * etags
+
+potential modules:
+  * webdav
+  * fastcgi, cgi, scgi
+  * mod_proxy
+  * mod_rewrite
+  * mod_auth
+  * compression
+  * memcached
+  * ssl
+  * cache
+  * mod status (console of server status/state)
+  * mod userdir
+  * mod evasive (limit hosts per ip)
+
+seperate projects:
+  * url library
+  * date library
