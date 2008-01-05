@@ -1,4 +1,6 @@
+* is the server suppose to respond with the same vsn or the highest it supports?
 * add 2008 to copyrights
+* should there be a limit to the number of connections allowed at once?
 * rewrite chunked body reader (see todo in aitch_body)
 * look into in-file 'todo's
 * create example that uses put/post (counter?)

@@ -27,7 +27,7 @@ ctrl(S, Handler, Opts) ->
         ctrl_loop(S, Handler, Opts,
                   proplists:get_value(keep_alive_max_requests, Opts))
     catch
-        {aitch_sock, {read_error, timeout}} ->
+        {aitch_sock, timeout} ->
             aitch_sock:close_reader(S),
             exit(normal)
     end.

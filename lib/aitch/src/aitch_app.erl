@@ -16,9 +16,9 @@
 %%=================================================================
 
 %%-----------------------------------------------------------------
-%% @spec start(Type, StartArgs) -> {ok, Pid} |
-%%                                {ok, Pid, State} |
-%%                                {error, Reason}.
+%% @spec start(Type, StartArgs) -> {ok, Pid}        |
+%%                                 {ok, Pid, State} |
+%%                                 {error, Reason}
 %% @doc
 %%  This function is called whenever an application
 %%  is started using application:start/1,2, and should 

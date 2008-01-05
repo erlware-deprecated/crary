@@ -6,6 +6,7 @@
 -export([start/2, start/3, stop/1, servers/0]).
 
 % misc
+-export([list_to_vsn/1, vsn_to_iolist/1]).
 -export([code_to_list/1, to_list/1, to_float/1]).
 -export([ident/0, ident/1, long_ident/0]).
 -export([full_uri/1]).
@@ -38,6 +39,15 @@ stop(TcpPort) ->
 servers() ->
     lists:map(fun ({Id, _Child, _Type, _Modules}) -> Id end,
               supervisor:which_children(aitch_sup)).
+
+list_to_vsn(VsnStr) ->
+    {Maj, [$. | MinS]} = string:to_integer(VsnStr),
+    {Maj, list_to_integer(MinS)}.
+
+vsn_to_iolist(#aitch_req{vsn = Vsn}) ->
+    vsn_to_iolist(Vsn);
+vsn_to_iolist({Maj, Min}) ->
+    [integer_to_list(Maj), $., integer_to_list(Min)].
 
 to_list(L) when is_list(L); is_binary(L) ->
     L;
