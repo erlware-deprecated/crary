@@ -1,7 +1,9 @@
+* should access logging be separate (a handler, or called by handlers)
+* crary_dir_listing should be split off into a seperate repository
 * is the server suppose to respond with the same vsn or the highest it supports?
 * add 2008 to copyrights
 * should there be a limit to the number of connections allowed at once?
-* rewrite chunked body reader (see todo in aitch_body)
+* rewrite chunked body reader (see todo in crary_body)
 * look into in-file 'todo's
 * create example that uses put/post (counter?)
 * avoid denial of services dos (max header lengths, max line lengths,
@@ -14,9 +16,9 @@
 * can the controller pass the body size (or "chunked") to the sock so the sock
   can limit the amount that can be read
 * is it possible to keep writes safe?
-* propogate timeouts to the right places in aitch_sock
+* propogate timeouts to the right places in crary_sock
 * document exactly what's expected of a handler (ie should only use
-  aitch_socket:read(), must be exact in bytes read/written, etc)
+  crary_socket:read(), must be exact in bytes read/written, etc)
 * transfer codings (3.6)
   + chunked
   + identity
@@ -28,7 +30,7 @@
 * would it be faster to buffer and write out chunks when the buffer is
   full instead of writing out a chunk for each write(). also allows easier
   error handling
-* allow hostname to be configured, fix aitch:uri() to fall back on that (http 1.0)
+* allow hostname to be configured, fix crary:uri() to fall back on that (http 1.0)
 * version not supported error
 * re-read rfc
 * make sure that exceptions are consistent and documented
@@ -37,7 +39,7 @@
 * allow internal server errors and stuff to be overriden
 * allow internal server errors and stuff to be configured (ie is stack shown, etc)
 
-aitch_dir_listing:
+crary_dir_listing:
   * html escpae file names
   * url quote file name in ahref
   * range (partial)
