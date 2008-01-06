@@ -30,7 +30,6 @@
 %%% streaming/pipe-lining/etc HTTP servers
 %%% @end
 
-
 -module(crary_sock).
 
 %% public
@@ -77,16 +76,16 @@
                peername, %% fun() which returns socket's inet:peername()
                close}).  %% fun() which returns socket's inet:close()
 
-%% @type sock() = record()
-%% @type r_state() = record()
-%% @type w_state() = record()
-%% @type proplist() = [Key::atom() | {Key::atom(), Value::term}]
-%% @type mfa() = {Module::atom(), Function::atom(), Args::list()}
-%% @type timeout() = Milliseconds | infinity
-%%       Milliseconds = integer()
-%% @type vsn() = {Major, Minor}
-%%       Major = integer()
-%%       Minor = integer()
+%%% @type sock() = record()
+%%% @type r_state() = record()
+%%% @type w_state() = record()
+%%% @type proplist() = [Key::atom() | {Key::atom(), Value::term}]
+%%% @type mfa() = {Module::atom(), Function::atom(), Args::list()}
+%%% @type timeout() = Milliseconds | infinity
+%%%       Milliseconds = integer()
+%%% @type vsn() = {Major, Minor}
+%%%       Major = integer()
+%%%       Minor = integer()
 
 %% @doc Usually only called by crary_port to spawn/accept/process.
 %% @spec start_link(Port::pid(), ListenSock::port(),

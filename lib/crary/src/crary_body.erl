@@ -1,14 +1,49 @@
+%%% Copyright (c) 2007, 2008 Scott Parish
+%%%
+%%% Permission is hereby granted, free of charge, to any 
+%%% person obtaining a copy of this software and associated 
+%%% documentation files (the "Software"), to deal in the 
+%%% Software without restriction, including without limitation 
+%%% the rights to use, copy, modify, merge, publish, distribute,
+%%% sublicense, and/or sell copies of the Software, and to permit 
+%%% persons to whom the Software is furnished to do so, subject to 
+%%% the following conditions:
+%%%
+%%% The above copyright notice and this permission notice shall 
+%%% be included in all copies or substantial portions of the Software.
+%%%
+%%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+%%% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
+%%% OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
+%%% NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+%%% HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+%%% WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+%%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+%%% OTHER DEALINGS IN THE SOFTWARE.
+
+%%%-------------------------------------------------------------------
+
+%%% @author Scott Parish <srp@srparish.net>
+%%% @copyright 2007, 2008 Scott Parish <srp@srparish.net>
+%%% @doc This module provides functions for detecting, reading, and
+%%% writing HTTP bodies and encodings such as chunking.
+%%%
+%%% If you try to do chunked writes for a pre-http-1.1 client, this
+%%% module will do it by falling back to writing a streamed body with
+%%% no `content-length'. Obviously the connection has to be closed to
+%%% end the data stream. This means you can using a stream to
+%%% incrementally generate a webpage, or write out a large file, and
+%%% browsers such as w3m and lynx will still be able to work fine.
+
 -module(crary_body).
 
-%% public
-
+%%% public
 -export([has_body/1]).
 -export([new_reader/1, new_writer/1, with_writer/2]).
 -export([read/1, read/2, read_all/1]).
 -export([write/2, done_writing/1, done_writing/2]).
 
-%% gen_server callbacks
-
+%%% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2]).
 -export([terminate/2, code_change/3]).
 
@@ -18,18 +53,33 @@
 
 -record(state, {buf = []}).
 
-%% public
+%%%====================================================================
+%%% public
+%%%====================================================================
 
+%% @doc Does this request have a body that needs to be read? It determins
+%% this by checking for `content-length' or `transfer-encoding' headers.
+%% @spec has_body(crary:crary_req()) -> bool()
 has_body(#crary_req{headers = Headers}) ->
     crary_headers:has("content-length", Headers) orelse 
         crary_headers:has("transfer-encoding", Headers).
 
+%% @doc Return a new chunk reader.
+%% @spec new_reader(crary:crary_req()) -> pid()
 new_reader(Req) ->
     gen_server:start_link(?MODULE, init, Req, []).
 
+%% @doc Return a new chunk writer.
+%% @spec new_writer(crary:crary_req()) -> pid()
+%% @see with_writer/2
+%% @see crary:with_chunked_resp/4
 new_writer(Req) ->
     Req.
 
+%% @doc Call `F(Writer)' with a new writer, automatically closing the
+%% writer when `F' returns, and writing an error message if `F' throws
+%% an exception.
+%% @spec with_writer(crary:crary_req(), function()) -> pid()
 with_writer(Req, F) ->
     W = new_writer(Req),
     try F(W)
@@ -40,13 +90,21 @@ with_writer(Req, F) ->
     after done_writing(W)
     end.
 
-
+%% @doc Read and return the next available chunk.
+%% @spec read(pid()) -> binary()
 read(S) ->
     gen_server:call(S, read, infinity).
 
+%% @doc Read and return `Len' bytes.
+%% @spec read(pid(), integer()) -> binary()
 read(S, Len) ->
     gen_server:call(S, {read, Len}, infinity).
 
+%% @doc Read and return the full body. It doesn't matter if the body
+%% is chunked or fixed length, this will read it all in and return it
+%% as one binary. Probably great for `PUT' bodies for forms. Probably
+%% not great for reading in a large amount of data.
+%% @spec read_all(crary:crary_req()) -> binary()
 read_all(Req) ->
     MaxBytes = proplists:get_value(max_body_size, Req#crary_req.opts, infinity),
     case crary_headers:get("content-length", Req#crary_req.headers, null) of
@@ -69,6 +127,10 @@ read_all(Req) ->
             end
     end.
 
+%% @doc Write a chunk of data. At the moment, this data is immediately
+%% written as a chunk, regardless of the size. In the future writes
+%% may get buffered, probably with a configurable buffer size.
+%% @spec write(crary:crary_req(), Data::iolist()) -> ok
 write(_Req, "") ->
     ok;
 write(#crary_req{vsn = Vsn} = Req, Data) when Vsn == {1, 0}; Vsn == {0, 9} ->
@@ -77,23 +139,32 @@ write(Req, Data) ->
     Len = iolist_size(Data),
     crary_sock:write(Req, [erlang:integer_to_list(Len, 16), ?EOL, Data, ?EOL]).
 
-% since we were streaming, we can't keep-alive for http 1.0, even if
-% that was requested
+%% @doc Writing the closing chunk. For pre-http-1.1 streaming this also
+%% closes the socket.
+%% @spec done_writing(crary:crary_req()) -> ok
 done_writing(#crary_req{vsn = {1, 0}} = Req) ->
+    %% since we were streaming, we can't keep-alive for http 1.0, even
+    %% if that was requested
     crary_sock:close(Req);
 done_writing(Req) ->
     crary_sock:write(Req, <<"0\r\n\r\n">>).
-		     
+
+%% @doc Writing the `Trailers' and the closing chunk.
+%% @spec done_writing(crary:crary_req(), crary_headers:headerish()) -> ok
 done_writing(Req, Trailers) ->
     crary_sock:write(<<"0\r\n">>),
     crary_headers:write(Req, Trailers).
 
-%% gen_server callbacks
+%%%====================================================================
+%%% reader gen_server callbacks
+%%%====================================================================
 
+%% @private
 init(Req) ->
     put(crary_sock, Req),
     {ok, #state{}}.
 
+%% @private
 handle_call(read, _From, State) ->
     {State2, Data} = read_(State, get(crary_sock)),
     {reply, Data, State2};
@@ -102,20 +173,26 @@ handle_call({read, Len}, _From, State) ->
     {State2, Data} = read_(State, get(crary_sock), Len),
     {reply, Data, State2}.
 
+%% @private
 handle_cast(R, _State) ->
     throw({unexpected_cast, R}).
 
+%% @private
 handle_info(R, _State) ->
     throw({unexpected_info, R}).
 
+%% @private
 terminate(Reason, _State) ->
     error_logger:error_report([{server, crary_body},
 			       {terminate, io_lib:format("~p",[Reason])}]).
 
+%% @private
 code_change(_OldVsn, C, _Extra) ->
     {ok, C}.
 
-%% private
+%%%====================================================================
+%%% private
+%%%====================================================================
 
 read_(#state{buf = []} = State, Req) ->
     case read_chunk_header_line_(Req) of

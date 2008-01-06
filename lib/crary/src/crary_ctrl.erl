@@ -82,8 +82,8 @@ dec_keep_alive_requests(N) -> N - 1.
 keep_alive_p(_Req, 1) -> false;
 keep_alive_p(#crary_req{vsn = {0, 9}}, _) -> false;
 keep_alive_p(#crary_req{vsn = {1, 0}, headers = Headers}, _) ->
-    case crary_headers:get_lower("connection", Headers, false) of
-	false -> false;
+    case string:to_lower(crary_headers:get("connection", Headers, "none")) of
+	"none" -> false;
 	"keep-alive" -> true;
 	C ->
 	    error_logger:warning_msg(
@@ -91,8 +91,8 @@ keep_alive_p(#crary_req{vsn = {1, 0}, headers = Headers}, _) ->
 	    false
     end;
 keep_alive_p(#crary_req{vsn = {1, 1}, headers = Headers}, _) ->
-    case crary_headers:get_lower("connection", Headers, false) of
-	false -> true;
+    case string:to_lower(crary_headers:get("connection", Headers, "none")) of
+	"none" -> true;
 	"close" -> false;
 	"keep-alive" -> true;
 	C ->
