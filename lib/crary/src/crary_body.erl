@@ -1,24 +1,24 @@
 %%% Copyright (c) 2007, 2008 Scott Parish
 %%%
-%%% Permission is hereby granted, free of charge, to any 
-%%% person obtaining a copy of this software and associated 
-%%% documentation files (the "Software"), to deal in the 
-%%% Software without restriction, including without limitation 
+%%% Permission is hereby granted, free of charge, to any
+%%% person obtaining a copy of this software and associated
+%%% documentation files (the "Software"), to deal in the
+%%% Software without restriction, including without limitation
 %%% the rights to use, copy, modify, merge, publish, distribute,
-%%% sublicense, and/or sell copies of the Software, and to permit 
-%%% persons to whom the Software is furnished to do so, subject to 
+%%% sublicense, and/or sell copies of the Software, and to permit
+%%% persons to whom the Software is furnished to do so, subject to
 %%% the following conditions:
 %%%
-%%% The above copyright notice and this permission notice shall 
+%%% The above copyright notice and this permission notice shall
 %%% be included in all copies or substantial portions of the Software.
 %%%
 %%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-%%% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
-%%% OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-%%% NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+%%% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+%%% OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+%%% NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
 %%% HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 %%% WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-%%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+%%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 %%% OTHER DEALINGS IN THE SOFTWARE.
 
 %%%-------------------------------------------------------------------
@@ -61,7 +61,7 @@
 %% this by checking for `content-length' or `transfer-encoding' headers.
 %% @spec has_body(crary:crary_req()) -> bool()
 has_body(#crary_req{headers = Headers}) ->
-    crary_headers:has("content-length", Headers) orelse 
+    crary_headers:has("content-length", Headers) orelse
         crary_headers:has("transfer-encoding", Headers).
 
 %% @doc Return a new chunk reader.
@@ -184,7 +184,7 @@ handle_info(R, _State) ->
 %% @private
 terminate(Reason, _State) ->
     error_logger:error_report([{server, crary_body},
-			       {terminate, io_lib:format("~p",[Reason])}]).
+                               {terminate, io_lib:format("~p",[Reason])}]).
 
 %% @private
 code_change(_OldVsn, C, _Extra) ->
@@ -196,21 +196,21 @@ code_change(_OldVsn, C, _Extra) ->
 
 read_(#state{buf = []} = State, Req) ->
     case read_chunk_header_line_(Req) of
-	0 ->
-	    Trailers = crary_headers:new(Req),
-	    {State, {"", Trailers}};
-	Len ->
-	    Data = read(Req, Len),
-	    "\r\n" = read(Req, 2),
-	    {State, Data}
+        0 ->
+            Trailers = crary_headers:new(Req),
+            {State, {"", Trailers}};
+        Len ->
+            Data = read(Req, Len),
+            "\r\n" = read(Req, 2),
+            {State, Data}
     end;
 read_(#state{buf = Buf} = State, _Req) ->
     {State#state{buf = []}, Buf}.
 
 read_no_trailers_(State, Req) ->
     case read_(State, Req) of
-	{State2, {Data, _Trailers}} ->  {State2, Data};
-	{State2, Data}              ->  {State2, Data}
+        {State2, {Data, _Trailers}} ->  {State2, Data};
+        {State2, Data}              ->  {State2, Data}
     end.
 
 read_chunk_header_line_(Req) ->
@@ -219,15 +219,15 @@ read_chunk_header_line_(Req) ->
 
 read_(#state{buf = Buf} = State, Req, Len) ->
     case iolist_size(Buf) of
-	BLen when BLen > Len ->
-	    BBuf = iolist_to_binary(Buf),
-	    <<LData:Len/binary, RData/binary>> = BBuf,
-	    {State#state{buf = RData}, LData};
-	BLen when BLen == Len ->
-	    {State#state{buf = []}, Buf};
-	BLen when BLen < Len ->
-	    {State2, Data} = read_no_trailers_(State, Req),
-	    read_(Req, State2#state{buf = [Buf, Data]}, Len)
+        BLen when BLen > Len ->
+            BBuf = iolist_to_binary(Buf),
+            <<LData:Len/binary, RData/binary>> = BBuf,
+            {State#state{buf = RData}, LData};
+        BLen when BLen == Len ->
+            {State#state{buf = []}, Buf};
+        BLen when BLen < Len ->
+            {State2, Data} = read_no_trailers_(State, Req),
+            read_(Req, State2#state{buf = [Buf, Data]}, Len)
     end.
 
 read_all_(_Reader, BytesLeft, _Data, _Acc) when BytesLeft < 0 ->

@@ -69,10 +69,10 @@ read_req_line(Req) ->
 
 
 call_handler(Req, {M, F, Args}) ->
-    try	apply(M, F, [Req | Args])
+    try        apply(M, F, [Req | Args])
     catch
-	C:R ->
-	    crary:internal_server_error(Req, C, R, erlang:get_stacktrace())
+        C:R ->
+            crary:internal_server_error(Req, C, R, erlang:get_stacktrace())
     end.
 
 
@@ -83,38 +83,38 @@ keep_alive_p(_Req, 1) -> false;
 keep_alive_p(#crary_req{vsn = {0, 9}}, _) -> false;
 keep_alive_p(#crary_req{vsn = {1, 0}, headers = Headers}, _) ->
     case string:to_lower(crary_headers:get("connection", Headers, "none")) of
-	"none" -> false;
-	"keep-alive" -> true;
-	C ->
-	    error_logger:warning_msg(
-	      "unknown_connection_header '~p' for HTTP/1.0~n", [C]),
-	    false
+        "none" -> false;
+        "keep-alive" -> true;
+        C ->
+            error_logger:warning_msg(
+              "unknown_connection_header '~p' for HTTP/1.0~n", [C]),
+            false
     end;
 keep_alive_p(#crary_req{vsn = {1, 1}, headers = Headers}, _) ->
     case string:to_lower(crary_headers:get("connection", Headers, "none")) of
-	"none" -> true;
-	"close" -> false;
-	"keep-alive" -> true;
-	C ->
-	    error_logger:warning_msg(
-	      "unknown_connection_header '~p' for HTTP/1.1~n", [C]),
-	    false
+        "none" -> true;
+        "close" -> false;
+        "keep-alive" -> true;
+        C ->
+            error_logger:warning_msg(
+              "unknown_connection_header '~p' for HTTP/1.1~n", [C]),
+            false
     end;
 keep_alive_p(#crary_req{vsn = Vsn}, _) ->
     error_logger:warning_msg("unknown_http_version '~p'~n",
-			     [crary_sock:vsn_to_list(Vsn)]),
+                             [crary_sock:vsn_to_list(Vsn)]),
     false.
 
 validate_vsn11_has_host(#crary_req{vsn = {1, 1},
                                    headers = Headers} = Req) ->
     case crary_headers:has("host", Headers) of
-	true ->
-	    ok;
-	false ->
-	    crary:r_error(Req, 400, <<"<p>HTTP 1.1 requests must include the
+        true ->
+            ok;
+        false ->
+            crary:r_error(Req, 400, <<"<p>HTTP 1.1 requests must include the
                                           <i>host</i> header</p>.">>),
             crary_sock:close(Req),
-	    exit(normal)
+            exit(normal)
     end;
 validate_vsn11_has_host(_) ->
     ok.

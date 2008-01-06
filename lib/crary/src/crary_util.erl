@@ -11,15 +11,15 @@ rfc1123_date() ->
 
 dow_name(Date) ->
     case calendar:day_of_the_week(Date) of
-	1 -> <<"Mon">>;
-	2 -> <<"Tue">>;
-	3 -> <<"Wed">>;
-	4 -> <<"Thu">>;
-	5 -> <<"Fri">>;
-	6 -> <<"Sat">>;
-	7 -> <<"Sun">>
+        1 -> <<"Mon">>;
+        2 -> <<"Tue">>;
+        3 -> <<"Wed">>;
+        4 -> <<"Thu">>;
+        5 -> <<"Fri">>;
+        6 -> <<"Sat">>;
+        7 -> <<"Sun">>
     end.
-    
+
 moy_name(1) -> <<"Jan">>;
 moy_name(2) -> <<"Feb">>;
 moy_name(3) -> <<"Mar">>;

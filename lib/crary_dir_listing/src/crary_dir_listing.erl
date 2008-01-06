@@ -35,24 +35,24 @@ handler(Req, _BaseDir) ->
 
 dir_listing(Req, Path) ->
     case has_index_file(Req, Path) of
-	{true, Name} ->
-	    write_file(Req, Path ++ "/" ++ Name);
-	false ->
-	    case file:list_dir(Path) of
-		{ok, Names} ->
-		    crary:with_chunked_resp(
-		      Req, 200, [{<<"content-type">>, <<"text/html">>}],
-		      fun (W) -> write_listing(Req, W, Path, Names) end);
-		{error, eaccess} ->
-		    crary:forbidden(Req)
-	    end
+        {true, Name} ->
+            write_file(Req, Path ++ "/" ++ Name);
+        false ->
+            case file:list_dir(Path) of
+                {ok, Names} ->
+                    crary:with_chunked_resp(
+                      Req, 200, [{<<"content-type">>, <<"text/html">>}],
+                      fun (W) -> write_listing(Req, W, Path, Names) end);
+                {error, eaccess} ->
+                    crary:forbidden(Req)
+            end
     end.
 
 
 
 write_listing(Req, W, Dir, Names) ->
     crary_body:write(W,
-		     [<<"<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 4.0//EN\">
+                     [<<"<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 4.0//EN\">
                           <html>
                            <head>
                             <title>Index of ">>, Dir, <<"</title>
@@ -72,7 +72,7 @@ write_listing(Req, W, Dir, Names) ->
                                <th>Name</th><th>Last modified</th>
                                <th>Size</th><th>Type</th>
                               </tr></thead>
-		              <tbody>">>]),
+                              <tbody>">>]),
     lists:foreach(fun (Name) -> write_name(Req, W, Dir, Name) end, Names),
     crary_body:write(W, [<<"  </tbody>
                              </table>
@@ -81,11 +81,11 @@ write_listing(Req, W, Dir, Names) ->
                            </body>
                           </html>">>]).
 
-    
+
 write_name(Req, W, Dir, Name) ->
     {ok, Info} = file:read_file_info(Dir ++ "/" ++ Name),
     crary_body:write(W,
-		     [<<"<tr>
+                     [<<"<tr>
                           <td class=\"n\">">>,
                            format_name(Req, Name, Info),
                        <<"</td>
@@ -96,24 +96,24 @@ write_name(Req, W, Dir, Name) ->
 
 format_size(#file_info{size = Size}) when Size >= ?Gib ->
     io_lib:format("~.1fG", [float(Size) / ?Gib]);
-format_size(#file_info{size = Size}) when Size >= ?Mib ->   
+format_size(#file_info{size = Size}) when Size >= ?Mib ->
     io_lib:format("~.1fM", [float(Size) / ?Mib]);
 format_size(#file_info{size = Size}) ->
     io_lib:format("~.1fK", [float(Size) / ?Kib]).
 
 format_mtime(#file_info{mtime = {{Y, M, D}, {H, Min, S}}}) ->
     io_lib:format("~.4.0w-~.2.0w-~.2.0w ~.2.0w:~.2.0w:~.2.0w",
-		  [Y, M, D, H, Min, S]).
+                  [Y, M, D, H, Min, S]).
 
 format_name(Req, Name, #file_info{type = Type}) ->
     TS = case Type of
-	     directory -> $/;
-	     _ -> ""
-	 end,
+             directory -> $/;
+             _ -> ""
+         end,
     [<<"<a href=\"">>,
      strip_slash(crary:full_uri(Req)), $/, Name, TS, <<"\">">>,
      Name, TS, <<"</a>">>].
-    
+
 format_type(_, #file_info{type = directory}) -> <<"Directory">>;
 format_type(_, #file_info{type = device}) -> <<"Device">>;
 format_type(Name, #file_info{type = regular}) ->
@@ -121,63 +121,63 @@ format_type(Name, #file_info{type = regular}) ->
 
 write_file(#crary_req{opts = Opts} = Req, Path) ->
     case file:open(Path, [read, raw, binary]) of
-	{ok, Fd} ->
-	    BufSz = proplists:get_value(crary_dir_listing_buffer_size,
-					Opts, ?BUFSZ),
-	    crary:with_chunked_resp(Req, 200,
-				    [{<<"content-type">>, mime_type(Path)}],
-				    fun (W) -> write_file(W, Fd, BufSz) end);
-	{error, eaccess} ->
-	    crary:forbidden(Req)
+        {ok, Fd} ->
+            BufSz = proplists:get_value(crary_dir_listing_buffer_size,
+                                        Opts, ?BUFSZ),
+            crary:with_chunked_resp(Req, 200,
+                                    [{<<"content-type">>, mime_type(Path)}],
+                                    fun (W) -> write_file(W, Fd, BufSz) end);
+        {error, eaccess} ->
+            crary:forbidden(Req)
     end.
-    
+
 write_file(W, Fd, BufSz) ->
     case file:read(Fd, BufSz) of
-	{ok, Data} ->
-	    crary_body:write(W, Data),
-	    write_file(W, Fd, BufSz);
-	eof ->
-	    ok
+        {ok, Data} ->
+            crary_body:write(W, Data),
+            write_file(W, Fd, BufSz);
+        eof ->
+            ok
     end.
-    
+
 has_index_file(#crary_req{opts = Opts}, Path) ->
     has_index_file(proplists:get_value(crary_dir_listing_index_file_names,
-				       Opts, ?INDEX_NAMES),
-		   Path);
+                                       Opts, ?INDEX_NAMES),
+                   Path);
 has_index_file([], _Path) ->
     false;
 has_index_file([Name | Names], Path) ->
     case file:read_file_info(Path ++ "/" ++ Name) of
-	{ok, _} ->
-	    {true, Name};
-	{error, enoent} ->
-	    has_index_file(Names, Path)
+        {ok, _} ->
+            {true, Name};
+        {error, enoent} ->
+            has_index_file(Names, Path)
     end.
 
 make_path(Base, Uri) ->
     Parts = lists:foldl(
-	      fun (Part, Acc) ->
-		      case Part of
-			  ".." -> 
-			      case Acc of
-				  [] -> throw(invalid_path);
-				  _ -> tl(Acc)
-			      end;
-			  "."  -> Acc;
-			  _    -> [Part | Acc]
-		      end
-	      end, [], string:tokens(Uri, "/")),
+              fun (Part, Acc) ->
+                      case Part of
+                          ".." ->
+                              case Acc of
+                                  [] -> throw(invalid_path);
+                                  _ -> tl(Acc)
+                              end;
+                          "."  -> Acc;
+                          _    -> [Part | Acc]
+                      end
+              end, [], string:tokens(Uri, "/")),
     SBase = strip_slash(Base),
     case Parts of
-	[] ->
-	    SBase;
-	_ ->
-	    lists:flatten([SBase, $/,
-			   lists:foldl(fun (Part, []) ->
-					       Part;
-					   (Part, Path) ->
-					       [Part, "/", Path]
-				       end, [], Parts)])
+        [] ->
+            SBase;
+        _ ->
+            lists:flatten([SBase, $/,
+                           lists:foldl(fun (Part, []) ->
+                                               Part;
+                                           (Part, Path) ->
+                                               [Part, "/", Path]
+                                       end, [], Parts)])
     end.
 
 strip_slash(Str) ->
@@ -200,8 +200,8 @@ make_path_test() ->
 extension(Path) ->
     File = filename:basename(Path, []),
     case string:chr(File, $.) of
-	0 -> "";
-	N -> string:substr(File, N)
+        0 -> "";
+        N -> string:substr(File, N)
     end.
 
 mime_type(Name) ->

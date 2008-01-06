@@ -19,12 +19,12 @@
 
 % TODO-- support long forms of the names
 
-start(TcpPort, Handler) ->    
+start(TcpPort, Handler) ->
     start(TcpPort, Handler, []).
 
 % todo: what should this return?
 start(TcpPort, Handler, Options) ->
-    Args = [TcpPort, Handler, Options], 
+    Args = [TcpPort, Handler, Options],
     case supervisor:start_child(crary_sup,
                                 {TcpPort, {crary_port, start_link, Args},
                                  permanent, 5, worker, [crary_sup]}) of
@@ -107,7 +107,7 @@ with_chunked_resp(Req, Code, Headers, F) ->
     after
         crary_sock:done_writing(Req)
     end.
-            
+
 r_error(Req, Code, Body) ->
     CodeStr = code_to_list(Code),
     r(Req, Code, [{<<"content-type">>, <<"text/html">>}],
@@ -123,7 +123,7 @@ Body,
               integer_to_list(crary_sock:this_port(Req)),
 <<"</ADDRESS>
 </BODY></HTML>">>]).
-     
+
 
 not_implemented(#crary_req{uri = URI, method = Method, vsn = Vsn} = Req) ->
     r_error(Req, 501,
@@ -137,12 +137,12 @@ bad_request(Req) ->
                    could not understand.</p>">>).
 
 internal_server_error_html(#crary_req{uri = URI, method = Method} = Req,
-			  Class, Reason, Stack) ->
+                          Class, Reason, Stack) ->
     error_logger:error_report([internal_server_error,
-			       {req, Req},
-			       {class, Class},
-			       {reason, Reason},
-			       {stack, Stack}]),
+                               {req, Req},
+                               {class, Class},
+                               {reason, Reason},
+                               {stack, Stack}]),
     [<<"Internal error on ">>, Method,
      <<" to ">>, URI, <<": ">>,
      io_lib:format("~p: ~p", [Class, Reason]),
@@ -154,13 +154,13 @@ internal_server_error(Req, Class, Reason, Stack) ->
 
 not_found(#crary_req{uri = URI} = Req) ->
     r_error(Req, 404,
-	    [<<"<P>The requested URL ">>, URI,
-	     <<" was not found on this server.</P>">>]).
+            [<<"<P>The requested URL ">>, URI,
+             <<" was not found on this server.</P>">>]).
 
 forbidden(#crary_req{uri = URI} = Req) ->
     r_error(Req, 404,
-	    [<<"<P>You don't have permission to access ">>, URI,
-	     <<" on this server.</P>">>]).
+            [<<"<P>You don't have permission to access ">>, URI,
+             <<" on this server.</P>">>]).
 
 code_to_list(100)                 -> <<"100 Continue">>;
 code_to_list(continue)            -> <<"100 Continue">>;

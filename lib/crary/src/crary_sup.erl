@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------
-%%% @author Scott R Parish <srp@srparish.net> 
+%%% @author Scott R Parish <srp@srparish.net>
 %%% @doc
 %%% @end
-%%% @copyright 2007 Scott R Parish 
+%%% @copyright 2007 Scott R Parish
 %%%----------------------------------------------------------------
 -module(crary_sup).
 -behaviour(supervisor).
@@ -33,9 +33,9 @@ start_link() ->
 %%                     ignore                          |
 %%                     {error, Reason}
 %% @doc
-%%  Whenever a supervisor is started using 
-%%  supervisor:start_link/[2,3], this function is called by the 
-%%  new process to find out about restart strategy, maximum 
+%%  Whenever a supervisor is started using
+%%  supervisor:start_link/[2,3], this function is called by the
+%%  new process to find out about restart strategy, maximum
 %%  restart frequency and childspecifications.
 %% @end
 %%-----------------------------------------------------------------

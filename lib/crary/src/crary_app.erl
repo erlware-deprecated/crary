@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------
 %%% @author Scott R Parish <srp@srparish.net>
 %%% @doc
-%%% 
+%%%
 %%% @end
 %%% @copyright 2007 Scott R Parish
 %%%----------------------------------------------------------------,
@@ -21,9 +21,9 @@
 %%                                 {error, Reason}
 %% @doc
 %%  This function is called whenever an application
-%%  is started using application:start/1,2, and should 
-%%  start the processes of the application. If the application 
-%%  is structured according to the OTP design principles as a 
+%%  is started using application:start/1,2, and should
+%%  start the processes of the application. If the application
+%%  is structured according to the OTP design principles as a
 %%  supervision tree, this means starting the top supervisor
 %%  of the tree.
 %% @end

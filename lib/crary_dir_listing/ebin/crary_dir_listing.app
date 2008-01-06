@@ -1,4 +1,4 @@
-{application, crary_dir_listing, 
+{application, crary_dir_listing,
   [{description, "crary directory listing handler"},
    {vsn, "0.1.0"},
    {modules, [crary_dir_listing]},

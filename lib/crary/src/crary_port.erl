@@ -30,9 +30,9 @@ accepted(ServerPid, Pid) ->
 init({TcpPort, Handler, Options}) ->
     process_flag(trap_exit, true),
     case gen_tcp:listen(TcpPort, [binary, {packet, raw}, {active, false},
-				  {exit_on_close, false}]) of
+                                  {exit_on_close, false}]) of
         {ok, ListenSocket} ->
-            try {ok, #state{listen_socket = ListenSocket, 
+            try {ok, #state{listen_socket = ListenSocket,
                             tcp_port = TcpPort,
                             handler = Handler,
                             options = Options}}

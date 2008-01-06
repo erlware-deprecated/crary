@@ -1,5 +1,5 @@
 %% This is the application resource file (.app file) for the crary, application.
-{application, crary, 
+{application, crary,
   [{description, "An HTTP server for the REST of us"},
    {vsn, "0.1.0"},
    {modules, [
@@ -12,7 +12,7 @@
               crary_sock,
               crary_sup,
               crary_util,
-	      example
+              example
              ]},
    {registered,[crary_sup]},
    {applications, [kernel, stdlib]},

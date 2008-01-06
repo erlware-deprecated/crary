@@ -1,24 +1,24 @@
 %%% Copyright (c) 2007, 2008 Scott Parish
 %%%
-%%% Permission is hereby granted, free of charge, to any 
-%%% person obtaining a copy of this software and associated 
-%%% documentation files (the "Software"), to deal in the 
-%%% Software without restriction, including without limitation 
+%%% Permission is hereby granted, free of charge, to any
+%%% person obtaining a copy of this software and associated
+%%% documentation files (the "Software"), to deal in the
+%%% Software without restriction, including without limitation
 %%% the rights to use, copy, modify, merge, publish, distribute,
-%%% sublicense, and/or sell copies of the Software, and to permit 
-%%% persons to whom the Software is furnished to do so, subject to 
+%%% sublicense, and/or sell copies of the Software, and to permit
+%%% persons to whom the Software is furnished to do so, subject to
 %%% the following conditions:
 %%%
-%%% The above copyright notice and this permission notice shall 
+%%% The above copyright notice and this permission notice shall
 %%% be included in all copies or substantial portions of the Software.
 %%%
 %%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-%%% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
-%%% OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-%%% NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+%%% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+%%% OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+%%% NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
 %%% HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 %%% WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-%%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+%%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 %%% OTHER DEALINGS IN THE SOFTWARE.
 
 %%%-------------------------------------------------------------------
@@ -152,7 +152,7 @@ start_link_w(Sock, Ctrl, R) ->
       end).
 
 %% @doc Close the socket, shutdown the reader and writer.
-%% 
+%%
 %% Only call this if you really want to close the connection, otherwise
 %% this will terminate any futher pipe-lined requests.
 %%
@@ -169,7 +169,7 @@ close(#sock{r = R, w = W, resp = Ctrl, close = Close}) ->
     end.
 
 %% @doc Close the read half of the TCP socket.
-%% 
+%%
 %% On hitting `EOF' when reading, we don't know if it was a full
 %% close() or a half duplex shutdown(), so close the reader, and add
 %% 'close' to the writers resp_q to finish shutting down when the last
@@ -208,18 +208,18 @@ read(S, Len, Opts) when is_list(Opts) ->
 read(#sock{r = R, resp = Resp}, Len, Timeout) ->
     erlang:send(R, {self(), read, Resp, Len, Timeout}),
     receive
-	{ok, <<>>} ->
-	    throw({crary_sock, eof});
-	{ok, Data} ->
-	    Data;
-	{error, closed} ->
-	    throw({crary_sock, eof});
-	%% known errors: timeout, emsgsize
-	{error, timeout} ->
-	    throw({crary_sock, timeout});
-	{error, Error} ->
-	    io:format("read error: ~p~n", [Error]),
-	    throw({crary_sock, {read_error, Error}})
+        {ok, <<>>} ->
+            throw({crary_sock, eof});
+        {ok, Data} ->
+            Data;
+        {error, closed} ->
+            throw({crary_sock, eof});
+        %% known errors: timeout, emsgsize
+        {error, timeout} ->
+            throw({crary_sock, timeout});
+        {error, Error} ->
+            io:format("read error: ~p~n", [Error]),
+            throw({crary_sock, {read_error, Error}})
     end.
 
 %% @doc Return a string of the next line read from the socket.
@@ -240,11 +240,11 @@ read_line(S, Timeout, Acc) ->
     Data = binary_to_list(read(S, 0, Timeout)),
     case string:chr(Data, $\n) of
         0 -> % not found
-	    read_line(S, Timeout, [Data | Acc]);
+            read_line(S, Timeout, [Data | Acc]);
         1 ->
             [$\n | Rest] = Data,
-	    unread(S, Rest),
-	    Acc;
+            unread(S, Rest),
+            Acc;
         Idx ->
             LineLen = case lists:nth(Idx - 1, Data) of
                           $\r -> Idx - 2;
@@ -252,8 +252,8 @@ read_line(S, Timeout, Acc) ->
                       end,
             Line = string:substr(Data, 1, LineLen),
             Rest = string:substr(Data, Idx + 1),
-	    unread(S, Rest),
-	    lists:flatten(lists:reverse([Line | Acc]))
+            unread(S, Rest),
+            lists:flatten(lists:reverse([Line | Acc]))
     end.
 
 %% @doc Read the request line from the socket.
@@ -281,7 +281,7 @@ read_req_line(S, Timeout) ->
             {Method, Uri, crary:list_to_vsn(VsnStr)};
         [Method, Uri] ->
             {Method, Uri, {1, 0}};
-	_ -> throw({crary_sock, parse_error})
+        _ -> throw({crary_sock, parse_error})
     end.
 
 unread(_S, []) ->
@@ -301,7 +301,7 @@ write(#sock{w = W, resp = Resp}, Data) ->
     receive
         ok         -> ok;
         {error, R} -> throw({crary_sock, {write_error, R}});
-	Msg        -> throw({crary_sock, {unknown_w_msg, Msg}})
+        Msg        -> throw({crary_sock, {unknown_w_msg, Msg}})
     end.
 
 %% @doc Write the response line to the socket.
@@ -342,8 +342,8 @@ peername(#crary_req{sock = S}) ->
     peername(S);
 peername(#sock{peername = Peername}) ->
     case Peername() of
-	{ok, {Addr, Port}} -> {Addr, Port};
-	{error, Error}     -> throw({crary_sock, {peername_error, Error}})
+        {ok, {Addr, Port}} -> {Addr, Port};
+        {error, Error}     -> throw({crary_sock, {peername_error, Error}})
     end.
 
 %% @doc Return the name of the socket's local side.
@@ -367,8 +367,8 @@ sockname(#crary_req{sock = S}) ->
     sockname(S);
 sockname(#sock{sockname = Sockname}) ->
     case Sockname() of
-	{ok, {Addr, Port}} -> {Addr, Port};
-	{error, Error}     -> throw({crary_sock, {sockname_error, Error}})
+        {ok, {Addr, Port}} -> {Addr, Port};
+        {error, Error}     -> throw({crary_sock, {sockname_error, Error}})
     end.
 
 %% @doc Indicate that the handler or controller is done reading.
@@ -468,36 +468,36 @@ w_sock_loop(#w_state{resp = close, sock = S}) ->
     exit(normal);
 w_sock_loop(#w_state{sock = S, ctrl = Ctrl, resp = Resp} = State) ->
     w_sock_loop(receive
-		    {Pid, write, PidResp, Data}
-		    when PidResp == Resp; PidResp == Ctrl->
-			erlang:send(Pid, gen_tcp:send(S, Data)),
-			State;
+                    {Pid, write, PidResp, Data}
+                    when PidResp == Resp; PidResp == Ctrl->
+                        erlang:send(Pid, gen_tcp:send(S, Data)),
+                        State;
 
-		    {done_writing, Resp} ->
-			done_writing_(State, Resp);
+                    {done_writing, Resp} ->
+                        done_writing_(State, Resp);
 
-		    {add_resp, Ctrl, NewResp} ->
-			w_add_resp_(State, NewResp);
-		    
-		    {close, Ctrl} ->
-			exit(normal);
+                    {add_resp, Ctrl, NewResp} ->
+                        w_add_resp_(State, NewResp);
 
-		    {'EXIT', _From, normal} ->
-			State;
+                    {close, Ctrl} ->
+                        exit(normal);
 
-		    {'EXIT', From, Reason} ->
-			io:format("exit from ~p: ~p~n", [From, Reason]),
-			kill_pids_q_(From, State),
-			exit(pipe_crash)
-		end).
+                    {'EXIT', _From, normal} ->
+                        State;
+
+                    {'EXIT', From, Reason} ->
+                        io:format("exit from ~p: ~p~n", [From, Reason]),
+                        kill_pids_q_(From, State),
+                        exit(pipe_crash)
+                end).
 
 % alternate between the controller and a responder reading
 done_reading_(#r_state{ctrl = Resp, resp_q = RespQ} = State, Resp) ->
     case queue:out(RespQ) of
-	{{value, NextResp}, RespQ2} ->
-	    State#r_state{resp = NextResp, resp_q = RespQ2};
-	{empty, RespQ2} ->
-	    State#r_state{resp = undefined, resp_q = RespQ2}
+        {{value, NextResp}, RespQ2} ->
+            State#r_state{resp = NextResp, resp_q = RespQ2};
+        {empty, RespQ2} ->
+            State#r_state{resp = undefined, resp_q = RespQ2}
     end;
 done_reading_(#r_state{ctrl = Ctrl} = State, _Resp) ->
     State#r_state{resp = Ctrl}.
@@ -505,10 +505,10 @@ done_reading_(#r_state{ctrl = Ctrl} = State, _Resp) ->
 done_writing_(#w_state{resp_q = RespQ, r = R} = State, Resp) ->
     erlang:send(R, {done_writing, Resp}),
     case queue:out(RespQ) of
-	{{value, NextResp}, RespQ2} ->
-	    State#w_state{resp = NextResp, resp_q = RespQ2};
-	{empty, RespQ2} ->
-	    State#w_state{resp = undefined, resp_q = RespQ2}
+        {{value, NextResp}, RespQ2} ->
+            State#w_state{resp = NextResp, resp_q = RespQ2};
+        {empty, RespQ2} ->
+            State#w_state{resp = undefined, resp_q = RespQ2}
     end.
 
 r_add_resp_(#r_state{resp_q = RespQ} = State, Resp) ->
@@ -522,9 +522,9 @@ w_add_resp_(#w_state{resp_q = RespQ} = State, Resp) ->
 kill_pids_q_(_CrashedPid, #r_state{} = State) ->
     % todo: figure out what state this pid was in, and kill others accordingly
     lists:foreach(fun (Pid) -> exit(Pid, pipe_crash) end,
-		  queue:to_list(State#r_state.resp_q));
+                  queue:to_list(State#r_state.resp_q));
 kill_pids_q_(_CrashedPid, #w_state{} = State) ->
     % todo: figure out what state this pid was in, and kill others accordingly
     lists:foreach(fun (Pid) -> exit(Pid, pipe_crash) end,
-		  queue:to_list(State#w_state.resp_q)).
+                  queue:to_list(State#w_state.resp_q)).
 
