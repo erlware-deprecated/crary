@@ -79,17 +79,12 @@
 %%% @type sock() = record()
 %%% @type r_state() = record()
 %%% @type w_state() = record()
-%%% @type proplist() = [Key::atom() | {Key::atom(), Value::term}]
-%%% @type mfa() = {Module::atom(), Function::atom(), Args::list()}
 %%% @type timeout() = Milliseconds | infinity
 %%%       Milliseconds = integer()
-%%% @type vsn() = {Major, Minor}
-%%%       Major = integer()
-%%%       Minor = integer()
 
 %% @doc Usually only called by crary_port to spawn/accept/process.
 %% @spec start_link(Port::pid(), ListenSock::port(),
-%%                  Handler::mfa(), Opts::proplists()) -> pid()
+%%                  crary:mfa(), crary:proplists()) -> pid()
 start_link(PortPid, ListenSock, Handler, Opts) ->
     crary_util:spawn_link(
       fun() -> accept(PortPid, ListenSock, Handler, Opts) end).
@@ -97,12 +92,12 @@ start_link(PortPid, ListenSock, Handler, Opts) ->
 %% @private
 %% @doc accept() on the socket and process resulting connection.
 %% @spec accept(Port::pid(), ListenSock::port(),
-%%              Handler::mfa(), Opts::proplist()) -> none()
+%%              crary:mfa(), crary:proplist()) -> none()
 accept(PortPid, ListenSock, Handler, Opts) ->
     case gen_tcp:accept(ListenSock) of
         {ok, Sock} ->
             %% send message to the listener process to create a new acceptor
-            crary_port:accepted(PortPid, self()),
+            crary_port:accepted(PortPid),
             start_ctrl_with_wrapped_sock(Sock, Handler, Opts);
         {error, R} ->
             exit({crary_error, {accept_failed, R}})
@@ -111,8 +106,8 @@ accept(PortPid, ListenSock, Handler, Opts) ->
 %% @private
 %% @doc create processes for, link-together, and start the writer,
 %% reader, and controller
-%% @spec start_ctrl_with_wrapped_sock(Sock::port(), Handler::mfa(),
-%%                                    Opts::proplist()) -> none()
+%% @spec start_ctrl_with_wrapped_sock(Sock::port(), crary:mfa(),
+%%                                    crary:proplist()) -> none()
 start_ctrl_with_wrapped_sock(Sock, Handler, Opts) ->
     Ctrl = make_ref(),
     WPid = start_link_w(Sock, Ctrl, self()),
@@ -259,7 +254,7 @@ read_line(S, Timeout, Acc) ->
 %% @doc Read the request line from the socket.
 %% @see read_req_line/2
 %% @spec read_req_line(Sock::sock() | crary:crary_req()) ->
-%%       {Method::string(), URI::string(), vsn()}
+%%       {Method::string(), URI::string(), crary:vsn()}
 %% @throws {crary_sock, eof} | {crary_sock, timeout} |
 %%         {crary_sock, {read_error, Reason::term()}}
 read_req_line(#crary_req{sock = S, opts = Opts}) ->
@@ -269,8 +264,8 @@ read_req_line(S) ->
 
 %% @doc Read the request line from the socket.
 %% @spec read_req_line(Sock::sock() | crary:crary_req(),
-%%                     Opts::proplist() | timeout()) ->
-%%           {Method::string(), Uri::string(), vsn()}
+%%                     crary:proplist() | timeout()) ->
+%%           {Method::string(), Uri::string(), crary:vsn()}
 %% @throws {crary_sock, eof} | {crary_sock, timeout} |
 %%         {crary_sock, {read_error, Reason::term()}}
 read_req_line(S, Opts) when is_list(Opts) ->
@@ -312,10 +307,10 @@ write_resp_line(#crary_req{sock = S, vsn = Vsn}, Status) ->
 
 %% @doc Write the response line to the socket.
 %% @spec write_resp_line(Sock::sock() | crary:crary_req(),
-%%                       vsn(), crary:status()) -> ok
+%%                       crary:vsn(), crary:status()) -> ok
 %% @throws {crary_sock, {write_error, Reason::term()}}
 write_resp_line(S, Vsn, Status) when is_atom(Status); is_integer(Status)  ->
-    write_resp_line(S, Vsn, crary:code_to_list(Status));
+    write_resp_line(S, Vsn, crary:code_to_binary(Status));
 write_resp_line(S, Vsn, {StatusCode, StatusPhrase}) ->
     write_resp_line(S, Vsn, [StatusCode, $ , StatusPhrase]);
 write_resp_line(S, Vsn, Status) ->

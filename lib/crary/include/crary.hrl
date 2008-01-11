@@ -1,7 +1,7 @@
 
 -record(crary_req,
         {vsn,                                % {Maj,Min}
-         method,                             % 'GET'|'POST'|...
+         method,                             % "GET"|"POST"|...
          uri,                                % Request URI
          headers,                            % crary_headers()
          sock,                               % inet socket

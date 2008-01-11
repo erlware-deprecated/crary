@@ -77,7 +77,8 @@ new(S) ->
 
 %% @doc Create a {@link header()} structure from the socket. Opts is
 %% used to set the timeout.
-%% @spec new(crary_sock:sock() | crary:crary_req(), proplist()) -> headers()
+%% @spec new(crary_sock:sock() | crary:crary_req(), crary:proplist()) ->
+%%           headers()
 new(S, Opts) ->
     read_headers(S, proplists:get_value(keep_alive_timeout, Opts),
                  new(), crary_sock:read_line(S, Opts)).

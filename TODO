@@ -1,3 +1,5 @@
+* rename crary:with_chunked_resp to with_writer
+* credit iserve
 * should access logging be separate (a handler, or called by handlers)
 * crary_dir_listing should be split off into a seperate repository
 * is the server suppose to respond with the same vsn or the highest it supports?

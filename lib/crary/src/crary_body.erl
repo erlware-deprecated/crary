@@ -70,6 +70,11 @@ new_reader(Req) ->
     gen_server:start_link(?MODULE, init, Req, []).
 
 %% @doc Return a new chunk writer.
+%%
+%% It may be observed that currently this call just returns the same
+%% `Req' that was passed to it. Don't depend on this, it will likely
+%% be changed to a pid() or similar in the future for supporting
+%% buffering or other encodings.
 %% @spec new_writer(crary:crary_req()) -> pid()
 %% @see with_writer/2
 %% @see crary:with_chunked_resp/4
@@ -79,6 +84,13 @@ new_writer(Req) ->
 %% @doc Call `F(Writer)' with a new writer, automatically closing the
 %% writer when `F' returns, and writing an error message if `F' throws
 %% an exception.
+%%
+%% Since the response line has almost certainly already been writen
+%% out, the best this function can do is append an error message into
+%% the output, and hope that it will be seen. If this is not good
+%% behavior for your application, use a try/catch form in `F' to keep
+%% errors from making it down the stack to here.
+%%
 %% @spec with_writer(crary:crary_req(), function()) -> pid()
 with_writer(Req, F) ->
     W = new_writer(Req),
