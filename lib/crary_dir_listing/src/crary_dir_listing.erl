@@ -40,9 +40,10 @@ dir_listing(Req, Path) ->
         false ->
             case file:list_dir(Path) of
                 {ok, Names} ->
-                    crary:with_chunked_resp(
-                      Req, 200, [{<<"content-type">>, <<"text/html">>}],
-                      fun (W) -> write_listing(Req, W, Path, Names) end);
+                    crary:r(Req, 200, [{<<"content-type">>, <<"text/html">>}],
+                            fun (W) ->
+                                    write_listing(Req, W, Path, Names)
+                            end);
                 {error, eaccess} ->
                     crary:forbidden(Req)
             end
@@ -124,9 +125,8 @@ write_file(#crary_req{opts = Opts} = Req, Path) ->
         {ok, Fd} ->
             BufSz = proplists:get_value(crary_dir_listing_buffer_size,
                                         Opts, ?BUFSZ),
-            crary:with_chunked_resp(Req, 200,
-                                    [{<<"content-type">>, mime_type(Path)}],
-                                    fun (W) -> write_file(W, Fd, BufSz) end);
+            crary:r(Req, 200, [{<<"content-type">>, mime_type(Path)}],
+                    fun (W) -> write_file(W, Fd, BufSz) end);
         {error, eaccess} ->
             crary:forbidden(Req)
     end.

@@ -40,7 +40,7 @@
 -export([code_to_binary/1]).
 -export([ident/0, ident/1, long_ident/0]).
 -export([full_uri/1]).
--export([r/3, r/4, r_error/3, with_chunked_resp/4]).
+-export([r/3, resp/3, r/4, resp/4, r_error/3]).
 -export([not_implemented/1, internal_server_error/4, not_found/1, forbidden/1]).
 -export([bad_request/1]).
 -export([internal_server_error_html/4]).
@@ -137,8 +137,7 @@ servers() ->
 %%% APIs for dealing with HTTP type data
 %%%====================================================================
 
-%% @doc Parse the HTTP version string into an HTTP version tuple of
-%% `{Maj, Min}'.
+%% @doc Parse the HTTP version string into a version tuple of `{Maj, Min}'.
 %% @spec list_to_vsn(string()) -> vsn()
 list_to_vsn(VsnStr) ->
     {Maj, [$. | MinS]} = string:to_integer(VsnStr),
@@ -189,61 +188,32 @@ full_uri(#crary_req{uri = Uri, headers = Headers}) ->
     % todo: support > http/1.1 uri's with full uri
     lists:flatten([<<"http://">>, crary_headers:get("host", Headers), Uri]).
 
-%% @doc Write a response line, response headers, and body to the socket.
+%% @doc Write a response line and response headers to socket and
+%% either write the body, or start a streamed body call `F(Writer)' to
+%% generate the body. In both cases {@link crary_sock:done_writing/1}
+%% is called before returning.
 %%
-%% Example:
+%% Static Example:
 %% ```hello_handler(Req) ->
 %%        crary:r(Req, ok, [{"content-type", "text/html"}],
 %%                <<"<html><body>Hello World!</body></html>">>).
 %% '''
-%% @spec r(aitch_req(), code(), crary_headers:headers(), iolist()) -> ok
-r(Req, Code, Headers, Body) ->
-    Headers2 = crary_headers:extend(
-                 [{<<"content-length">>, integer_to_list(iolist_size(Body))}],
-                 Headers),
-    r(Req, Code, Headers2),
-    crary_sock:write(Req, Body),
-    crary_sock:done_writing(Req).
-
-%% @doc Write a response line and response headers to socket, does not
-%% write the body, nor does it call {@link crary_sock:done_writing/1}. It
-%% adds `Server' and `Date' headers to the response.
 %%
-%% Example:
+%% Streamed Example:
 %% ```hello_handler(Req) ->
-%%        crary:r(Req, ok, [{"content-type", "text/html"}]),
-%%        crary_sock:write(Req, "<html><body>Hello World!</body></html>"),
-%%        crary_sock:done_writing(Req).
+%%        crary:r(Req, ok, [{"content-type", "text/html"}],
+%%                fun (W) ->
+%%                           aitch_body:write(W, "<html><body>"),
+%%                           aitch_body:write(W, "Hello World!"),
+%%                           aitch_body:write(W, "</body></html>"),
+%%                end).
 %% '''
-%%
-%% If you need streaming, {@link with_chunked_resp/4} may be a more
-%% convient function this this one.
-%%
-%% @spec r(aitch_req(), code(), crary_headers:headers()) -> ok
-r(Req, Code, Headers) ->
-    crary_sock:write_resp_line(Req, Code),
-    Headers2 = crary_headers:extend([{<<"server">>, ident(Req)},
-                                     {<<"date">>, crary_util:rfc1123_date()}],
-                                    Headers),
-    crary_headers:write(Req, Headers2).
-
-%% @doc Write a response line and response headers to socket, open a
-%% new body writer and call `crary_body:with_writer(Req, F)', call
-%% {@link crary_sock:done_writing/1} after `F' returns.
-%%
-%% Example:
-%% ```hello_handler(Req) ->
-%%        crary:with_chunked_resp(Req, ok, [{"content-type", "text/html"}],
-%%                                fun (W) ->
-%%                                       aitch_body:write(W, "<html><body>"),
-%%                                       aitch_body:write(W, "Hello World!"),
-%%                                       aitch_body:write(W, "</body></html>"),
-%%                                end).
-%% '''
-%% @spec with_chunked_resp(crary_req(), code(), crary_headers:headers(),
-%%                         function()) -> ok
+%% @spec r(crary_req(), code(), crary_headers:headers(), BodyOrF) -> ok
+%%       BodyOrF = Body | F
+%%       Body = iolist()
+%%       F = function()
 %% @see crary_body:with_writer/2
-with_chunked_resp(Req, Code, Headers, F) ->
+r(Req, Code, Headers, F) when is_function(F) ->
     try
         Headers2 = case Req of
                       #crary_req{vsn = Vsn} when Vsn == {1, 0}; Vsn == {0, 9} ->
@@ -256,7 +226,51 @@ with_chunked_resp(Req, Code, Headers, F) ->
         crary_body:with_writer(Req, F)
     after
         crary_sock:done_writing(Req)
-    end.
+    end;
+r(Req, Code, Headers, Body) when is_list(Body); is_binary(Body) ->
+    Headers2 = crary_headers:extend(
+                 [{<<"content-length">>, integer_to_list(iolist_size(Body))}],
+                 Headers),
+    r(Req, Code, Headers2),
+    crary_sock:write(Req, Body),
+    crary_sock:done_writing(Req).
+
+%% @doc alias for {@link r/4}
+%% @see r/4
+resp(Req, Code, Headers, BodyOrF) ->
+    r(Req, Code, Headers, BodyOrF).
+
+%% @doc Write a response line and response headers to socket, does not
+%% write the body, nor does it call {@link crary_sock:done_writing/1}. It
+%% adds `Server' and `Date' headers to the response. Be sure to set the
+%% headers appropriately for the form of the body (ei `Content-Length'
+%% or `Transfer-Encoding').
+%%
+%% Example:
+%% ```hello_handler(Req) ->
+%%        Body = "<html><body>Hello World!</body></html>",
+%%        BodyLenStr = integer_to_list(iolist_size(Body)),
+%%        crary:r(Req, ok, [{"content-type", "text/html"},
+%%                          {<<"content-length">>, BodyLenStr}],
+%%        crary_sock:write(Req, Body),
+%%        crary_sock:done_writing(Req).
+%% '''
+%%
+%% If you need to write a body or do body streaming, {@link r/4} may
+%% be a more convient function then this one.
+%%
+%% @spec r(aitch_req(), code(), crary_headers:headers()) -> ok
+r(Req, Code, Headers) ->
+    crary_sock:write_resp_line(Req, Code),
+    Headers2 = crary_headers:extend([{<<"server">>, ident(Req)},
+                                     {<<"date">>, crary_util:rfc1123_date()}],
+                                    Headers),
+    crary_headers:write(Req, Headers2).
+
+%% @doc Alias for {@link r/3}
+%% @see r/3
+resp(Req, Code, Headers) ->
+    r(Req, Code, Headers).
 
 %% @doc Write a response for errors, this includes the standard error
 %% header and footer html. The `title' and `h1' are generated from the
@@ -276,7 +290,7 @@ with_chunked_resp(Req, Code, Headers, F) ->
 r_error(Req, Code, Msg) ->
     CodeStr = code_to_binary(Code),
     r(Req, Code, [{<<"content-type">>, <<"text/html">>}],
-                 [<<"<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 4.0//EN\">
+      [<<"<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 4.0//EN\">
 <HTML><HEAD>
 <TITLE>">>, CodeStr, <<"</TITLE>
 </HEAD><BODY>

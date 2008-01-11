@@ -8,7 +8,7 @@
 % application:start(crary).
 % crary:start(8001, {example, hello_world, []}).
 % crary:start(8002, {example, counter, []}).
-% crary:start(8003, {crary_dir_listing, handler, ["/tmp/test"]}).
+% crary:start(8003, {crary_dir_listing, handler, ["/Users/srp/tmp"]}).
 
 -include("crary.hrl").
 

@@ -77,7 +77,7 @@ new_reader(Req) ->
 %% buffering or other encodings.
 %% @spec new_writer(crary:crary_req()) -> pid()
 %% @see with_writer/2
-%% @see crary:with_chunked_resp/4
+%% @see crary:r/4
 new_writer(Req) ->
     Req.
 
