@@ -1,0 +1,146 @@
+@author Scott Parish <srp@srparish.net>
+@copyright 2007-2008 Scott Parish
+@version {@version}
+@title Crary, an HTTP server for the REST of us.
+
+@doc The goal of crary is to do one thing and one thing well:
+implement an HTTP server. It isn't constrained to rails--it doesn't
+even need roads. Its small enough to fit in your pocket and go with
+you wherever your journey takes you.
+
+The intention is that its small enough and flexible enough to be used
+for most any HTTP server need. While it isn't a stand-alone system,
+nor does it have its own web-framework, these things can easily be
+built on top of crary. Crary should be easily embedded into the
+release of a larger application to provide a web interface or to
+create a web service interface.
+
+The name `crary' is in honor of the inventor of the modern brick
+making machine, John Williamson Crary Sr. US Patents Nos. 21,186 and
+67,728. Before Crary's invention bricks were formed by hand and of
+inconsistent dimensions/quality.
+
+== Getting Started ==
+
+The easist way to use crary is to create a new erlware project that
+depends on crary.
+
+=== Example 1: Hello World ===
+
+Make a directory for your new project:
+
+```$ mkdir hello_world; cd hello_world'''
+
+Create a `_build.cfg' file with the following contents:
+
+```
+project : {
+   name : hello_world
+   vsn : "1.0"
+},
+
+repositories : ["http://repo.erlware.org/pub"],
+'''
+
+Make directories for the project's application:
+
+```mkdir -p lib/hello_world/{ebin,src}'''
+
+Create the `.app' file in `lib/hello_world/ebin/hello_world.app':
+
+```
+%% This is the application resource file (.app file) for the crary, application.
+{application, crary,
+  [{description, "An HTTP server for the REST of us"},
+   {vsn, "0.1.0"},
+   {modules, [hello_world]},
+   {registered, [crary_8080]},
+   {applications, [kernel, stdlib, sasl, crary]},
+   {mod, {hello_world_app, [{port, 8080}]}},
+   {start_phases, []}]}.
+'''
+
+Create the app module in `lib/hello_world/src/hello_world_app.erl':
+
+```
+-module(hello_world_app).
+-behaviour(application).
+
+-export([start/2, stap/1]).
+
+start(_Type, [{port, Port}]) ->
+    case crary:start(Port, {hello_world, handler, []}) of
+         {ok, Pid} -> {ok, Pid, [{port, Port}]};
+         Error -> Error
+    end.
+
+stop([{port, Port}]) ->
+    crary:stop(Port).
+'''
+
+Finally, create the handler in `lib/hello_world/src/hello_world.erl':
+
+```
+-module(hello_world).
+-export([handler/1]).
+
+handler(#crary_req{method = "GET", uri = "/"} = Req) ->
+    crary:r(Req, ok, [{"content-type", "text/html"}],
+            <<"<html><body>Hello World!</body></html>\r\n">>);
+handler(#crary_req{method = "GET"} = Req) ->
+    crary:not_found(Req);
+handler(#crary_req{method = "GET"} = Req) ->
+    crary:not_implemented(Req).
+'''
+
+Now run (you can install sinan by running `faxien install sinan' if
+you haven't done so already):
+
+```$ sinan build'''
+
+todo: how to launch?
+
+== Example 2: Counter ==
+
+Repeat the project/application framework, except you can use the
+following module instead of the `hello_world.erl' used before (change
+the other files accordingly to use this module):
+
+```
+-module(counter).
+
+counter(#crary_req{method = Method} = Req) ->
+    Count = case Method of
+                "GET" -> 0;
+                "POST" ->
+                    Body = binary_to_list(crary_body:read_all(Req)),
+                    [BodyCount, BodyAdd] = string:tokens(Body, "&"),
+                    ["count", Num] = string:tokens(BodyCount, "="),
+                    ["add", Add] = string:tokens(BodyAdd, "="),
+                    list_to_integer(Num) + case Add of
+                                               "%3C%3C" -> -1;
+                                               "%3E%3E" -> 1
+                                           end
+            end,
+    CountStr = integer_to_list(Count),
+    crary:r(Req, ok, [], fun (W) -> counter_html(Req, W) end).
+
+counter_html(Req, W) ->
+    %% we don't really need streaming for this; its used to show a
+    %% simple example of how to do it
+    crary_body:write([<<"<html>
+                          <head><title>
+                           Counter: ">>, CountStr, <<"
+                          </title></head>">>]),
+    crary_body:write([<<"<body>
+                          <form method=\"Post\" action=\"/\">
+                           <input type=\"hidden\" name=\"count\"
+                                  value=\"">>, CountStr, <<"\">
+                           Counter:
+                           <input type=\"submit\" name=\"add\" value=\"<<\">
+                           ">>, CountStr, <<"
+                           <input type=\"submit\" name=\"add\" value=\">>\">
+                          </form>
+                         </body>
+                        </html>">>]).
+'''
