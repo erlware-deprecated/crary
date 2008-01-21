@@ -15,7 +15,7 @@
               example
              ]},
    {registered,[crary_sup]},
-   {applications, [kernel, stdlib]},
+   {applications, [kernel, stdlib, sasl, uri]},
    {mod, {crary_app,[]}},
    {start_phases, []}]}.
 

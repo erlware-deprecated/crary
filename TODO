@@ -1,3 +1,4 @@
+* make sure we support file upload
 * credit iserve
 * should access logging be separate (a handler, or called by handlers)
 * crary_dir_listing should be split off into a seperate repository

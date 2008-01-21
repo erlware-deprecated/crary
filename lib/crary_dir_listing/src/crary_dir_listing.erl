@@ -5,6 +5,7 @@
 -include("file.hrl").
 -include("eunit.hrl").
 -include("crary.hrl").
+-include("uri.hrl").
 
 -define(Kib, (1024)).
 -define(Mib, (1024 * 1024)).
@@ -13,8 +14,9 @@
 -define(BUFSZ, 64 * ?Kib).
 -define(INDEX_NAMES, ["index.html", "index.htm", "default.htm"]).
 
-handler(#crary_req{uri = Uri, method = "GET"} = Req, BaseDir) ->
-    try make_path(BaseDir, Uri) of
+handler(#crary_req{uri = #uri{path = UriPath}, method = "GET"} = Req,
+        BaseDir) ->
+    try make_path(BaseDir, UriPath) of
         Path ->
             case file:read_file_info(Path) of
                 {ok, #file_info{type = directory}} ->
@@ -112,7 +114,7 @@ format_name(Req, Name, #file_info{type = Type}) ->
              _ -> ""
          end,
     [<<"<a href=\"">>,
-     strip_slash(crary:full_uri(Req)), $/, Name, TS, <<"\">">>,
+     strip_slash((Req#crary_req.uri)#uri.full), $/, Name, TS, <<"\">">>,
      Name, TS, <<"</a>">>].
 
 format_type(_, #file_info{type = directory}) -> <<"Directory">>;

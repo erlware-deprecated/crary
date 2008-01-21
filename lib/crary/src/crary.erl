@@ -39,7 +39,6 @@
 -export([list_to_vsn/1, vsn_to_iolist/1]).
 -export([code_to_binary/1]).
 -export([ident/0, ident/1, long_ident/0]).
--export([full_uri/1]).
 -export([r/3, resp/3, r/4, resp/4, r_error/3]).
 -export([not_implemented/1, internal_server_error/4, not_found/1, forbidden/1]).
 -export([bad_request/1]).
@@ -177,16 +176,6 @@ long_ident() ->
     lists:map(fun ({Name, _Desc, Vsn}) ->
                       [atom_to_list(Name), $/, Vsn, $ ]
               end, lists:keysort(1, application:loaded_applications())).
-
-%% @doc Return the full uri for this request. For HTTP/1.1, {@link
-%% crary_req()}.uri will be the path portion of the uri, not including
-%% the protocol, server, and port. This function will return the full
-%% uri.
-%% @spec full_uri(crary_req()) -> string()
-full_uri(#crary_req{uri = Uri, headers = Headers}) ->
-    % todo: configurable hostname fallback for http/1.0
-    % todo: support > http/1.1 uri's with full uri
-    lists:flatten([<<"http://">>, crary_headers:get("host", Headers), Uri]).
 
 %% @doc Write a response line and response headers to socket and
 %% either write the body, or start a streamed body call `F(Writer)' to

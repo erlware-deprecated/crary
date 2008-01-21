@@ -36,7 +36,8 @@ ctrl_loop(S, Handler, Opts, NReqs) ->
     Req0 = read_req_line(#crary_req{sock = S, opts = Opts}),
     Req1 = Req0#crary_req{headers = crary_headers:new(S, Opts)},
     validate_vsn11_has_host(Req1),
-    Req = make_resp_s(Req1),
+    Req2 = setup_uri(Req1),
+    Req = make_resp_s(Req2),
     case keep_alive_p(Req, NReqs) of
         true ->
             crary_util:spawn_link(fun () -> call_handler(Req, Handler) end),
@@ -67,6 +68,12 @@ read_req_line(Req) ->
             exit(normal)
     end.
 
+%% todo: configurable hostname fallback for http/1.0
+setup_uri(#crary_req{uri = "http" ++ Uri} = Req) ->
+    Req#crary_req{uri = uri:new(Uri)};
+setup_uri(#crary_req{uri = Uri, headers = Hs} = Req) ->
+    FullUri = lists:flatten(["http://", crary_headers:get("host", Hs), Uri]),
+    Req#crary_req{uri = uri:new(FullUri)}.
 
 call_handler(Req, {M, F, Args}) ->
     try        apply(M, F, [Req | Args])
