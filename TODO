@@ -40,6 +40,7 @@
 * test chunked put
 * allow internal server errors and stuff to be overriden
 * allow internal server errors and stuff to be configured (ie is stack shown, etc)
+* document how to use port 80 and not run as root on various operating systems
 
 crary_dir_listing:
   * html escpae file names
