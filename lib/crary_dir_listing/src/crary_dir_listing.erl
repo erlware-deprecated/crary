@@ -2,6 +2,8 @@
 
 -export([handler/2]).
 
+-export([file_path/2]).
+
 -include("file.hrl").
 -include("eunit.hrl").
 -include("crary.hrl").
@@ -14,9 +16,8 @@
 -define(BUFSZ, 64 * ?Kib).
 -define(INDEX_NAMES, ["index.html", "index.htm", "default.htm"]).
 
-handler(#crary_req{uri = #uri{path = UriPath}, method = "GET"} = Req,
-        BaseDir) ->
-    try make_path(BaseDir, UriPath) of
+handler(#crary_req{method = "GET"} = Req, BaseDir) ->
+    try file_path(Req, BaseDir) of
         Path ->
             case file:read_file_info(Path) of
                 {ok, #file_info{type = directory}} ->
@@ -157,7 +158,7 @@ has_index_file([Name | Names], Path) ->
             has_index_file(Names, Path)
     end.
 
-make_path(Base, Uri) ->
+file_path(#crary_req{uri = #uri{path = Uri}}, Base) ->
     Parts = lists:foldl(
               fun (Part, Acc) ->
                       case Part of
@@ -186,19 +187,19 @@ make_path(Base, Uri) ->
 strip_slash(Str) ->
     string:strip(Str, right, $/).
 
-make_path_test() ->
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c", "d")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "d")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "d/")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "/d")),
-    ?assertMatch("/a/b/c", make_path("/a/b/c/", "d/../")),
-    ?assertMatch("/a/b/c/d2", make_path("/a/b/c/", "d/../d2")),
-    ?assertMatch("/a/b/../c/d", make_path("/a/b/../c/", "d")),
-    ?assertMatch("/a/b/c", make_path("/a/b/c/", "")),
-    ?assertThrow(invalid_path, make_path("/a/b/c/", "d/../..")),
-    ?assertThrow(invalid_path, make_path("/a/b/c/", "../..")),
-    ?assertThrow(invalid_path, make_path("/a/b/c/", "..")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "/./d")).
+file_path_test() ->
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c", "d")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "d")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "d/")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "/d")),
+    ?assertMatch("/a/b/c", file_path("/a/b/c/", "d/../")),
+    ?assertMatch("/a/b/c/d2", file_path("/a/b/c/", "d/../d2")),
+    ?assertMatch("/a/b/../c/d", file_path("/a/b/../c/", "d")),
+    ?assertMatch("/a/b/c", file_path("/a/b/c/", "")),
+    ?assertThrow(invalid_path, file_path("/a/b/c/", "d/../..")),
+    ?assertThrow(invalid_path, file_path("/a/b/c/", "../..")),
+    ?assertThrow(invalid_path, file_path("/a/b/c/", "..")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "/./d")).
 
 extension(Path) ->
     File = filename:basename(Path, []),
