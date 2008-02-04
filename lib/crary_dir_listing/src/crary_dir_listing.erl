@@ -114,7 +114,8 @@ format_name(Req, Name, #file_info{type = Type}) ->
              _ -> ""
          end,
     [<<"<a href=\"">>,
-     strip_slash((Req#crary_req.uri)#uri.full), $/, Name, TS, <<"\">">>,
+     %% todo: use uri library to create this uri
+     strip_slash((Req#crary_req.uri)#uri.raw), $/, Name, TS, <<"\">">>,
      Name, TS, <<"</a>">>].
 
 format_type(_, #file_info{type = directory}) -> <<"Directory">>;
