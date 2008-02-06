@@ -29,6 +29,7 @@
 
 -module(crary).
 
+-include("uri.hrl").
 -include("crary.hrl").
 
 % application control
@@ -302,9 +303,10 @@ Msg,
 %%        crary:not_implemented(Req).
 %% '''
 %% @spec not_implemented(crary_req()) -> ok
-not_implemented(#crary_req{uri = URI, method = Method, vsn = Vsn} = Req) ->
+not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
     r_error(Req, 501,
-            [<<"<P>">>, Method, <<" to ">>, URI, <<" not implemented.</P>\n">>,
+            [<<"<P>">>, Method, <<" to ">>,
+             Uri#uri.raw, <<" not implemented.</P>\n">>,
              <<"<P>Invalid method in request ">>, Method,
              <<" HTTP/">>, crary_sock:vsn_to_iolist(Vsn), <<"</P>\n">>]).
 
@@ -322,7 +324,7 @@ bad_request(Req) ->
 %% headers will have already been sent.
 %% @spec internal_server_error_html(crary_req(), atom(), term(), list()) ->
 %%           iolist()
-internal_server_error_html(#crary_req{uri = URI, method = Method} = Req,
+internal_server_error_html(#crary_req{uri = Uri, method = Method} = Req,
                           Class, Reason, Stack) ->
     error_logger:error_report([internal_server_error,
                                {req, Req},
@@ -330,7 +332,7 @@ internal_server_error_html(#crary_req{uri = URI, method = Method} = Req,
                                {reason, Reason},
                                {stack, Stack}]),
     [<<"Internal error on ">>, Method,
-     <<" to ">>, URI, <<": ">>,
+     <<" to ">>, Uri#uri.raw, <<": ">>,
      io_lib:format("~p: ~p", [Class, Reason]),
      <<"<P>Stack:<PRE><CODE>">>, io_lib:format("~p", [Stack]),
      <<"</CODE></PRE></P>">>].
@@ -356,17 +358,17 @@ internal_server_error(Req, Class, Reason, Stack) ->
 %%        crary:not_found(Uri).
 %% '''
 %% @spec not_found(crary_req()) -> ok
-not_found(#crary_req{uri = URI} = Req) ->
+not_found(#crary_req{uri = Uri} = Req) ->
     r_error(Req, 404,
-            [<<"<P>The requested URL ">>, URI,
+            [<<"<P>The requested URL ">>, Uri#uri.raw,
              <<" was not found on this server.</P>">>]).
 
 %% @doc This is a short cut for sending 403, `Forbidden' error
 %% responses with the body already filled in.
 %% @spec forbidden(crary_req()) -> ok
-forbidden(#crary_req{uri = URI} = Req) ->
+forbidden(#crary_req{uri = Uri} = Req) ->
     r_error(Req, 403,
-            [<<"<P>You don't have permission to access ">>, URI,
+            [<<"<P>You don't have permission to access ">>, Uri#uri.raw,
              <<" on this server.</P>">>]).
 
 %% @doc Given a number or atom of a standard HTTP response code, return
