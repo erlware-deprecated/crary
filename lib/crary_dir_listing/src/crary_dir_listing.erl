@@ -26,7 +26,7 @@ handler(#crary_req{method = "GET"} = Req, BaseDir) ->
                     write_file(Req, Path);
                 {error, enoent} ->
                     crary:not_found(Req);
-                {error, eaccess} ->
+                {error, eacces} ->
                     crary:forbidden(Req)
             end
     catch
@@ -47,7 +47,7 @@ dir_listing(Req, Path) ->
                             fun (W) ->
                                     write_listing(Req, W, Path, Names)
                             end);
-                {error, eaccess} ->
+                {error, eacces} ->
                     crary:forbidden(Req)
             end
     end.
@@ -125,21 +125,40 @@ format_type(Name, #file_info{type = regular}) ->
     mime_type(Name).
 
 write_file(#crary_req{opts = Opts} = Req, Path) ->
-    case file:open(Path, [read, raw, binary]) of
-        {ok, Fd} ->
-            BufSz = proplists:get_value(crary_dir_listing_buffer_size,
-                                        Opts, ?BUFSZ),
-            crary:r(Req, 200, [{<<"content-type">>, mime_type(Path)}],
-                    fun (W) -> write_file(W, Fd, BufSz) end);
-        {error, eaccess} ->
-            crary:forbidden(Req)
+    try
+        case file:open(Path, [read, raw, binary]) of
+            {ok, Fd} ->
+                BufSz = proplists:get_value(
+                          crary_dir_listing_buffer_size, Opts, ?BUFSZ),
+                crary:r(Req, 200, [{<<"content-type">>, mime_type(Path)},
+                                   {<<"content-length">>, file_len(Path)}]),
+                write_file(Req, Fd, BufSz),
+                crary_sock:done_writing(Req);
+            {error, Reason} ->
+                throw({error, Reason})
+        end
+    catch
+        {error, enoent} ->
+            crary:not_found(Req);
+        {error, eacces} ->
+            crary:forbidden(Req);
+        {error, enotdir} ->
+            crary:not_found(Req)
     end.
 
-write_file(W, Fd, BufSz) ->
+file_len(Path) ->
+    case file:read_file_info(Path) of
+        {ok, Stat} ->
+            integer_to_list(Stat#file_info.size);
+        {error, Reason} ->
+            throw({error, Reason})
+    end.
+
+write_file(Req, Fd, BufSz) ->
     case file:read(Fd, BufSz) of
         {ok, Data} ->
-            crary_body:write(W, Data),
-            write_file(W, Fd, BufSz);
+            crary_sock:write(Req, Data),
+            write_file(Req, Fd, BufSz);
         eof ->
             ok
     end.
