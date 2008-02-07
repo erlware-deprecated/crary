@@ -40,6 +40,7 @@
 -export([list_to_vsn/1, vsn_to_iolist/1]).
 -export([code_to_binary/1]).
 -export([ident/0, ident/1, long_ident/0]).
+-export([pp/1]).
 -export([r/3, resp/3, r/4, resp/4, r_error/3]).
 -export([not_implemented/1, internal_server_error/4, not_found/1, forbidden/1]).
 -export([bad_request/1]).
@@ -177,6 +178,21 @@ long_ident() ->
     lists:map(fun ({Name, _Desc, Vsn}) ->
                       [atom_to_list(Name), $/, Vsn, $ ]
               end, lists:keysort(1, application:loaded_applications())).
+
+%% @doc Pretty print the request--useful for logging/console debugging.
+%% @spec pp(crary_req()) -> string()
+pp(#crary_req{} = Req) ->
+    io_lib:format("~p~n",
+                  [{method, Req#crary_req.method},
+                   {uri, Req#crary_req.uri},
+                   {vsn, Req#crary_req.vsn},
+                   {headers, crary_headers:to_list(Req#crary_req.headers)},
+                   {opts, Req#crary_req.opts}]).
+
+
+%%%====================================================================
+%%% APIs for forming responses
+%%%====================================================================
 
 %% @doc Write a response line and response headers to socket and
 %% either write the body, or start a streamed body call `F(Writer)' to
