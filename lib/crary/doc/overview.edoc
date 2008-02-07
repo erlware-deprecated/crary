@@ -84,7 +84,7 @@ Finally, create the handler in `lib/hello_world/src/hello_world.erl':
 -module(hello_world).
 -export([handler/1]).
 
-handler(#crary_req{method = "GET", uri = "/"} = Req) ->
+handler(#crary_req{method = "GET", uri = #uri{path = "/"}} = Req) ->
     crary:r(Req, ok, [{"content-type", "text/html"}],
             <<"<html><body>Hello World!</body></html>\r\n">>);
 handler(#crary_req{method = "GET"} = Req) ->
