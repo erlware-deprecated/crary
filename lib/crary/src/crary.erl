@@ -308,7 +308,7 @@ not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
             [<<"<P>">>, Method, <<" to ">>,
              Uri#uri.raw, <<" not implemented.</P>\n">>,
              <<"<P>Invalid method in request ">>, Method,
-             <<" HTTP/">>, crary_sock:vsn_to_iolist(Vsn), <<"</P>\n">>]).
+             <<" HTTP/">>, vsn_to_iolist(Vsn), <<"</P>\n">>]).
 
 %% @doc This is a short cut for sending 400, `Bad Request', error responses
 %% with the body already filled in.
