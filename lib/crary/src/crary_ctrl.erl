@@ -76,7 +76,7 @@ setup_uri(#crary_req{uri = Uri, headers = Hs} = Req) ->
     Req#crary_req{uri = UriRec}.
 
 call_handler(Req, {M, F, Args}) ->
-    try        apply(M, F, [Req | Args])
+    try apply(M, F, [Req | Args])
     catch
         C:R ->
             crary:internal_server_error(Req, C, R, erlang:get_stacktrace())
