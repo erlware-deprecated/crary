@@ -69,11 +69,11 @@ read_req_line(Req) ->
     end.
 
 %% todo: configurable hostname fallback for http/1.0
-setup_uri(#crary_req{uri = "http" ++ Uri} = Req) ->
-    Req#crary_req{uri = uri:new(Uri)};
+setup_uri(#crary_req{uri = "http" ++ _ = Uri} = Req) ->
+    Req#crary_req{uri = uri:from_string(Uri)};
 setup_uri(#crary_req{uri = Uri, headers = Hs} = Req) ->
-    FullUri = lists:flatten(["http://", crary_headers:get("host", Hs), Uri]),
-    Req#crary_req{uri = uri:new(FullUri)}.
+    UriRec = uri:from_http_1_1("http", crary_headers:get("host", Hs), Uri),
+    Req#crary_req{uri = UriRec}.
 
 call_handler(Req, {M, F, Args}) ->
     try        apply(M, F, [Req | Args])

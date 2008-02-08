@@ -2,6 +2,8 @@
 
 -export([handler/2]).
 
+-export([file_path/2]).
+
 -include("file.hrl").
 -include("eunit.hrl").
 -include("crary.hrl").
@@ -14,9 +16,8 @@
 -define(BUFSZ, 64 * ?Kib).
 -define(INDEX_NAMES, ["index.html", "index.htm", "default.htm"]).
 
-handler(#crary_req{uri = #uri{path = UriPath}, method = "GET"} = Req,
-        BaseDir) ->
-    try make_path(BaseDir, UriPath) of
+handler(#crary_req{method = "GET"} = Req, BaseDir) ->
+    try file_path(Req, BaseDir) of
         Path ->
             case file:read_file_info(Path) of
                 {ok, #file_info{type = directory}} ->
@@ -25,7 +26,7 @@ handler(#crary_req{uri = #uri{path = UriPath}, method = "GET"} = Req,
                     write_file(Req, Path);
                 {error, enoent} ->
                     crary:not_found(Req);
-                {error, eaccess} ->
+                {error, eacces} ->
                     crary:forbidden(Req)
             end
     catch
@@ -46,7 +47,7 @@ dir_listing(Req, Path) ->
                             fun (W) ->
                                     write_listing(Req, W, Path, Names)
                             end);
-                {error, eaccess} ->
+                {error, eacces} ->
                     crary:forbidden(Req)
             end
     end.
@@ -114,7 +115,8 @@ format_name(Req, Name, #file_info{type = Type}) ->
              _ -> ""
          end,
     [<<"<a href=\"">>,
-     strip_slash((Req#crary_req.uri)#uri.full), $/, Name, TS, <<"\">">>,
+     %% todo: use uri library to create this uri
+     strip_slash((Req#crary_req.uri)#uri.raw), $/, Name, TS, <<"\">">>,
      Name, TS, <<"</a>">>].
 
 format_type(_, #file_info{type = directory}) -> <<"Directory">>;
@@ -123,21 +125,40 @@ format_type(Name, #file_info{type = regular}) ->
     mime_type(Name).
 
 write_file(#crary_req{opts = Opts} = Req, Path) ->
-    case file:open(Path, [read, raw, binary]) of
-        {ok, Fd} ->
-            BufSz = proplists:get_value(crary_dir_listing_buffer_size,
-                                        Opts, ?BUFSZ),
-            crary:r(Req, 200, [{<<"content-type">>, mime_type(Path)}],
-                    fun (W) -> write_file(W, Fd, BufSz) end);
-        {error, eaccess} ->
-            crary:forbidden(Req)
+    try
+        case file:open(Path, [read, raw, binary]) of
+            {ok, Fd} ->
+                BufSz = proplists:get_value(
+                          crary_dir_listing_buffer_size, Opts, ?BUFSZ),
+                crary:r(Req, 200, [{<<"content-type">>, mime_type(Path)},
+                                   {<<"content-length">>, file_len(Path)}]),
+                write_file(Req, Fd, BufSz),
+                crary_sock:done_writing(Req);
+            {error, Reason} ->
+                throw({error, Reason})
+        end
+    catch
+        {error, enoent} ->
+            crary:not_found(Req);
+        {error, eacces} ->
+            crary:forbidden(Req);
+        {error, enotdir} ->
+            crary:not_found(Req)
     end.
 
-write_file(W, Fd, BufSz) ->
+file_len(Path) ->
+    case file:read_file_info(Path) of
+        {ok, Stat} ->
+            integer_to_list(Stat#file_info.size);
+        {error, Reason} ->
+            throw({error, Reason})
+    end.
+
+write_file(Req, Fd, BufSz) ->
     case file:read(Fd, BufSz) of
         {ok, Data} ->
-            crary_body:write(W, Data),
-            write_file(W, Fd, BufSz);
+            crary_sock:write(Req, Data),
+            write_file(Req, Fd, BufSz);
         eof ->
             ok
     end.
@@ -156,7 +177,7 @@ has_index_file([Name | Names], Path) ->
             has_index_file(Names, Path)
     end.
 
-make_path(Base, Uri) ->
+file_path(#crary_req{uri = #uri{path = Uri}}, Base) ->
     Parts = lists:foldl(
               fun (Part, Acc) ->
                       case Part of
@@ -185,19 +206,19 @@ make_path(Base, Uri) ->
 strip_slash(Str) ->
     string:strip(Str, right, $/).
 
-make_path_test() ->
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c", "d")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "d")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "d/")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "/d")),
-    ?assertMatch("/a/b/c", make_path("/a/b/c/", "d/../")),
-    ?assertMatch("/a/b/c/d2", make_path("/a/b/c/", "d/../d2")),
-    ?assertMatch("/a/b/../c/d", make_path("/a/b/../c/", "d")),
-    ?assertMatch("/a/b/c", make_path("/a/b/c/", "")),
-    ?assertThrow(invalid_path, make_path("/a/b/c/", "d/../..")),
-    ?assertThrow(invalid_path, make_path("/a/b/c/", "../..")),
-    ?assertThrow(invalid_path, make_path("/a/b/c/", "..")),
-    ?assertMatch("/a/b/c/d", make_path("/a/b/c/", "/./d")).
+file_path_test() ->
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c", "d")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "d")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "d/")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "/d")),
+    ?assertMatch("/a/b/c", file_path("/a/b/c/", "d/../")),
+    ?assertMatch("/a/b/c/d2", file_path("/a/b/c/", "d/../d2")),
+    ?assertMatch("/a/b/../c/d", file_path("/a/b/../c/", "d")),
+    ?assertMatch("/a/b/c", file_path("/a/b/c/", "")),
+    ?assertThrow(invalid_path, file_path("/a/b/c/", "d/../..")),
+    ?assertThrow(invalid_path, file_path("/a/b/c/", "../..")),
+    ?assertThrow(invalid_path, file_path("/a/b/c/", "..")),
+    ?assertMatch("/a/b/c/d", file_path("/a/b/c/", "/./d")).
 
 extension(Path) ->
     File = filename:basename(Path, []),
