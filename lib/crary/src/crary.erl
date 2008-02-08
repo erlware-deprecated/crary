@@ -179,15 +179,17 @@ long_ident() ->
                       [atom_to_list(Name), $/, Vsn, $ ]
               end, lists:keysort(1, application:loaded_applications())).
 
-%% @doc Pretty print the request--useful for logging/console debugging.
-%% @spec pp(crary_req()) -> string()
+%% @doc `Pretty print' the request: return a tuple list representing
+%% the crary_req structure in a form that will print nicely via
+%% {@link io:format/2} `~p' or {@link error_logger:error_report/1}.
+%% @spec pp(crary_req()) -> list()
 pp(#crary_req{} = Req) ->
-    io_lib:format("~p~n",
-                  [{method, Req#crary_req.method},
-                   {uri, Req#crary_req.uri},
-                   {vsn, Req#crary_req.vsn},
-                   {headers, crary_headers:to_list(Req)},
-                   {opts, Req#crary_req.opts}]).
+    [{method, Req#crary_req.method},
+     {uri, Req#crary_req.uri},
+     {vsn, Req#crary_req.vsn},
+     {headers, crary_headers:to_list(Req)},
+     {sock, Req#crary_req.sock},
+     {opts, Req#crary_req.opts}].
 
 
 %%%====================================================================
@@ -343,7 +345,7 @@ bad_request(Req) ->
 internal_server_error_html(#crary_req{uri = Uri, method = Method} = Req,
                           Class, Reason, Stack) ->
     error_logger:error_report([internal_server_error,
-                               {req, Req},
+                               {req, pp(Req)},
                                {class, Class},
                                {reason, Reason},
                                {stack, Stack}]),
