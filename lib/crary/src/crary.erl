@@ -105,14 +105,14 @@
 %%%====================================================================
 
 %% @doc Start a crary server listening on `TcpPort'.
-%% @spec start(integer(), mfa()) -> pid()
+%% @spec start(integer(), mfa() | {function(), Args}) -> pid()
 %% @see start/3
 start(TcpPort, Handler) ->
     start(TcpPort, Handler, []).
 
 %% @doc Start a crary server listening on `TcpPort'. `Handler' will be
 %% called as `apply(M, F, [Req | Args])' for each request.
-%% @spec start(integer(), mfa(), proplist()) -> pid()
+%% @spec start(integer(), mfa() | {function(), Args}, proplist()) -> pid()
 start(TcpPort, Handler, Options) ->
     Args = [TcpPort, Handler, Options],
     case supervisor:start_child(crary_sup,

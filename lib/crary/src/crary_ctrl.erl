@@ -80,6 +80,12 @@ call_handler(Req, {M, F, Args}) ->
     catch
         C:R ->
             crary:internal_server_error(Req, C, R, erlang:get_stacktrace())
+    end;
+call_handler(Req, {Fun, Args}) when is_function(Fun) ->
+    try        apply(Fun, [Req | Args])
+    catch
+        C:R ->
+            crary:internal_server_error(Req, C, R, erlang:get_stacktrace())
     end.
 
 
