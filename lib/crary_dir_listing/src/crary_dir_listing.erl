@@ -2,7 +2,10 @@
 
 -export([handler/2]).
 
+%% methods other handler modules may find useful
 -export([file_path/2]).
+-export([write_file/2]).
+-export([mime_type/1]).
 
 -include("file.hrl").
 -include("eunit.hrl").
@@ -124,6 +127,9 @@ format_type(_, #file_info{type = device}) -> <<"Device">>;
 format_type(Name, #file_info{type = regular}) ->
     mime_type(Name).
 
+%% @doc This responder will open the file located at Path and return
+%% it as the HTTP response body.
+%% @spec write_file(crary:crary_req(), string()) -> void()
 write_file(#crary_req{opts = Opts} = Req, Path) ->
     try
         case file:open(Path, [read, raw, binary]) of
@@ -177,6 +183,9 @@ has_index_file([Name | Names], Path) ->
             has_index_file(Names, Path)
     end.
 
+%% @doc Create a file path by appending the Uri to Base (making sure
+%% that Uri doesn't try to escape from Base by using `..' or such.
+%% @spec file_path(crary:crary_req(), string()) -> string()
 file_path(#crary_req{uri = #uri{path = Uri}}, Base) ->
     Parts = lists:foldl(
               fun (Part, Acc) ->
@@ -227,6 +236,8 @@ extension(Path) ->
         N -> string:substr(File, N)
     end.
 
+%% @doc Return the mime type based on the extension of the given file name.
+%% @spec mime_type(string()) -> binary()
 mime_type(Name) ->
     ext_mime_type(extension(Name)).
 
