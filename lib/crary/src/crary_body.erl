@@ -60,9 +60,9 @@
 %% @doc Does this request have a body that needs to be read? It determins
 %% this by checking for `content-length' or `transfer-encoding' headers.
 %% @spec has_body(crary:crary_req()) -> bool()
-has_body(#crary_req{headers = Headers}) ->
-    crary_headers:has("content-length", Headers) orelse
-        crary_headers:has("transfer-encoding", Headers).
+has_body(Req) ->
+    crary_headers:has("content-length", Req) orelse
+        crary_headers:has("transfer-encoding", Req).
 
 %% @doc Return a new chunk reader.
 %% @spec new_reader(crary:crary_req()) -> pid()
@@ -119,7 +119,7 @@ read(S, Len) ->
 %% @spec read_all(crary:crary_req()) -> binary()
 read_all(Req) ->
     MaxBytes = proplists:get_value(max_body_size, Req#crary_req.opts, infinity),
-    case crary_headers:get("content-length", Req#crary_req.headers, null) of
+    case crary_headers:get("content-length", Req, null) of
         null ->
             exit(chunking_read_not_yet_supported),
             case crary_headers:has("transfer-encoding") of
@@ -209,7 +209,7 @@ code_change(_OldVsn, C, _Extra) ->
 read_(#state{buf = []} = State, Req) ->
     case read_chunk_header_line_(Req) of
         0 ->
-            Trailers = crary_headers:new(Req),
+            Trailers = crary_headers:from_sock(Req),
             {State, {"", Trailers}};
         Len ->
             Data = read(Req, Len),

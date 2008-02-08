@@ -34,7 +34,7 @@ ctrl(S, Handler, Opts) ->
 
 ctrl_loop(S, Handler, Opts, NReqs) ->
     Req0 = read_req_line(#crary_req{sock = S, opts = Opts}),
-    Req1 = Req0#crary_req{headers = crary_headers:new(S, Opts)},
+    Req1 = Req0#crary_req{headers = crary_headers:from_sock(Req0)},
     validate_vsn11_has_host(Req1),
     Req2 = setup_uri(Req1),
     Req = make_resp_s(Req2),
@@ -71,8 +71,8 @@ read_req_line(Req) ->
 %% todo: configurable hostname fallback for http/1.0
 setup_uri(#crary_req{uri = "http" ++ _ = Uri} = Req) ->
     Req#crary_req{uri = uri:from_string(Uri)};
-setup_uri(#crary_req{uri = Uri, headers = Hs} = Req) ->
-    UriRec = uri:from_http_1_1("http", crary_headers:get("host", Hs), Uri),
+setup_uri(#crary_req{uri = Uri} = Req) ->
+    UriRec = uri:from_http_1_1("http", crary_headers:get("host", Req), Uri),
     Req#crary_req{uri = UriRec}.
 
 call_handler(Req, {M, F, Args}) ->
@@ -88,8 +88,8 @@ dec_keep_alive_requests(N) -> N - 1.
 
 keep_alive_p(_Req, 1) -> false;
 keep_alive_p(#crary_req{vsn = {0, 9}}, _) -> false;
-keep_alive_p(#crary_req{vsn = {1, 0}, headers = Headers}, _) ->
-    case string:to_lower(crary_headers:get("connection", Headers, "none")) of
+keep_alive_p(#crary_req{vsn = {1, 0}} = Req, _) ->
+    case string:to_lower(crary_headers:get("connection", Req, "none")) of
         "none" -> false;
         "keep-alive" -> true;
         C ->
@@ -97,8 +97,8 @@ keep_alive_p(#crary_req{vsn = {1, 0}, headers = Headers}, _) ->
               "unknown_connection_header '~p' for HTTP/1.0~n", [C]),
             false
     end;
-keep_alive_p(#crary_req{vsn = {1, 1}, headers = Headers}, _) ->
-    case string:to_lower(crary_headers:get("connection", Headers, "none")) of
+keep_alive_p(#crary_req{vsn = {1, 1}} = Req, _) ->
+    case string:to_lower(crary_headers:get("connection", Req, "none")) of
         "none" -> true;
         "close" -> false;
         "keep-alive" -> true;
@@ -112,9 +112,8 @@ keep_alive_p(#crary_req{vsn = Vsn}, _) ->
                              [crary_sock:vsn_to_list(Vsn)]),
     false.
 
-validate_vsn11_has_host(#crary_req{vsn = {1, 1},
-                                   headers = Headers} = Req) ->
-    case crary_headers:has("host", Headers) of
+validate_vsn11_has_host(#crary_req{vsn = {1, 1}} = Req) ->
+    case crary_headers:has("host", Req) of
         true ->
             ok;
         false ->

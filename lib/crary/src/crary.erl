@@ -186,7 +186,7 @@ pp(#crary_req{} = Req) ->
                   [{method, Req#crary_req.method},
                    {uri, Req#crary_req.uri},
                    {vsn, Req#crary_req.vsn},
-                   {headers, crary_headers:to_list(Req#crary_req.headers)},
+                   {headers, crary_headers:to_list(Req)},
                    {opts, Req#crary_req.opts}]).
 
 

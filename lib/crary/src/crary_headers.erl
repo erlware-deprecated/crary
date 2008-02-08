@@ -39,7 +39,10 @@
 
 -module(crary_headers).
 
--export([new/0, new/1, new/2, add/2, add/3, extend/2, has/2, lookup/2]).
+-include("crary.hrl").
+
+-export([new/0, new/1, from_sock/1, from_sock/2]).
+-export([add/2, add/3, extend/2, has/2, lookup/2]).
 -export([get/2, get/3]).
 -export([to_list/1, foreach/2]).
 -export([write/2]).
@@ -52,7 +55,7 @@
 
 %%% @type stringish() = iolist() | atom()
 %%% @type headerish() = headers() | tuple_list() | dict() | gb_trees() |
-%%%                     crary_sock:sock() | crary:crary_req()
+%%%                     crary:crary_req()
 
 %% @doc Create an empty headers() structure.
 %% @spec new() -> crary_headers()
@@ -72,14 +75,24 @@ new(List) when is_list(List) ->
     lists:foldl(fun add/2, gb_trees:empty(), List);
 new({dict,_,_,_,_,_,_,_,_} = Dict) ->
     lists:foldl(fun add/2, gb_trees:empty(), dict:to_list(Dict));
-new(S) ->
+new(#crary_req{headers = Headers}) ->
+    Headers.
+
+
+%% @doc Create a {@link header()} structure from the socket. Opts is
+%% used to set the timeout.
+%% @spec from_sock(Sock) -> headers()
+%%       Sock = crary_sock:sock() | crary:crary_req()
+from_sock(#crary_req{sock = S, opts = Opts}) ->
+    from_sock(S, Opts);
+from_sock(S) ->
     read_headers(S, infinity, new(), crary_sock:read_line(S)).
 
 %% @doc Create a {@link header()} structure from the socket. Opts is
 %% used to set the timeout.
-%% @spec new(crary_sock:sock() | crary:crary_req(), crary:proplist()) ->
-%%           headers()
-new(S, Opts) ->
+%% @spec from_sock(Sock, crary:proplist()) -> headers()
+%%       Sock = crary_sock:sock() | crary:crary_req()
+from_sock(S, Opts) ->
     read_headers(S, proplists:get_value(keep_alive_timeout, Opts),
                  new(), crary_sock:read_line(S, Opts)).
 
