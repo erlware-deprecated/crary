@@ -95,7 +95,7 @@ dec_keep_alive_requests(N) -> N - 1.
 keep_alive_p(_Req, 1) -> false;
 keep_alive_p(#crary_req{vsn = {0, 9}}, _) -> false;
 keep_alive_p(#crary_req{vsn = {1, 0}} = Req, _) ->
-    case string:to_lower(crary_headers:get("connection", Req, "none")) of
+    case connection_keep_alive_header(Req) of
         "none" -> false;
         "keep-alive" -> true;
         C ->
@@ -104,7 +104,7 @@ keep_alive_p(#crary_req{vsn = {1, 0}} = Req, _) ->
             false
     end;
 keep_alive_p(#crary_req{vsn = {1, 1}} = Req, _) ->
-    case string:to_lower(crary_headers:get("connection", Req, "none")) of
+    case connection_keep_alive_header(Req) of
         "none" -> true;
         "close" -> false;
         "keep-alive" -> true;
@@ -117,6 +117,17 @@ keep_alive_p(#crary_req{vsn = Vsn}, _) ->
     error_logger:warning_msg("unknown_http_version '~p'~n",
                              [crary_sock:vsn_to_list(Vsn)]),
     false.
+
+connection_keep_alive_header(Req) ->
+    Val = string:to_lower(crary_headers:get("connection", Req, "none")),
+    connection_keep_alive_token(string:tokens(Val, ", ")).
+
+connection_keep_alive_token([T | _Ts]) when T == "keep-alive"; T == "close" ->
+    T;
+connection_keep_alive_token([_ | Ts]) ->
+    connection_keep_alive_token(Ts);
+connection_keep_alive_token([]) ->
+    "none".
 
 validate_vsn11_has_host(#crary_req{vsn = {1, 1}} = Req) ->
     case crary_headers:has("host", Req) of
