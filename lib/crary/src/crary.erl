@@ -41,7 +41,7 @@
 -export([code_to_binary/1]).
 -export([ident/0, ident/1, long_ident/0]).
 -export([pp/1]).
--export([r/3, resp/3, r/4, resp/4, r_error/3]).
+-export([r/3, resp/3, r/4, resp/4, r_error/3, error/3]).
 -export([not_implemented/1, internal_server_error/4, not_found/1, forbidden/1]).
 -export([bad_request/1]).
 -export([internal_server_error_html/4]).
@@ -310,6 +310,10 @@ Msg,
               integer_to_list(crary_sock:this_port(Req)),
 <<"</ADDRESS>
 </BODY></HTML>">>]).
+
+%% @alias r_error/3
+error(Req, Code, Msg) ->
+    r_error(Req, Code, Msg).
 
 %% @doc This is a short cut for sending 501, `Not Implemented', error
 %% responses with the body already filled in.
