@@ -212,8 +212,8 @@ read_(#state{buf = []} = State, Req) ->
             Trailers = crary_headers:from_sock(Req),
             {State, {"", Trailers}};
         Len ->
-            Data = read(Req, Len),
-            "\r\n" = read(Req, 2),
+            Data = crary_sock:read(Req, Len),
+            <<"\r\n">> = crary_sock:read(Req, 2),
             {State, Data}
     end;
 read_(#state{buf = Buf} = State, _Req) ->
@@ -226,7 +226,7 @@ read_no_trailers_(State, Req) ->
     end.
 
 read_chunk_header_line_(Req) ->
-    Line = crary_sock:read_line_(Req),
+    Line = crary_sock:read_line(Req),
     erlang:list_to_integer(hd(string:sub_word(Line, 1, $;)), 16).
 
 read_(#state{buf = Buf} = State, Req, Len) ->
