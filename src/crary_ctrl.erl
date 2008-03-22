@@ -75,19 +75,25 @@ setup_uri(#crary_req{uri = Uri} = Req) ->
     UriRec = uri:from_http_1_1("http", crary_headers:get("host", Req), Uri),
     Req#crary_req{uri = UriRec}.
 
-call_handler(Req, {M, F, Args}) ->
-    try apply(M, F, [Req | Args])
+call_handler(Req, MfaOrFun) ->
+    try
+        case MfaOrFun of
+            {M, F, Args} -> apply(M, F, [Req | Args]);
+            {F, Args}    -> apply(F, [Req | Args])
+        end
     catch
-        C:R ->
-            crary:internal_server_error(Req, C, R, erlang:get_stacktrace())
-    end;
-call_handler(Req, {Fun, Args}) when is_function(Fun) ->
-    try        apply(Fun, [Req | Args])
-    catch
+        throw:{resp, Code, Headers, BodyOrF} ->
+            crary:r(Req, Code, Headers, BodyOrF);
+        throw:{resp_error, Code, Msg} ->
+            crary:error(Req, Code, Msg);
+        throw:R when R == not_implemented;
+                     R == bad_request;
+                     R == not_found;
+                     R == forbidden ->
+            crary:R(Req);
         C:R ->
             crary:internal_server_error(Req, C, R, erlang:get_stacktrace())
     end.
-
 
 dec_keep_alive_requests(infinity) -> infinity;
 dec_keep_alive_requests(N) -> N - 1.

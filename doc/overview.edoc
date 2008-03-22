@@ -88,9 +88,9 @@ handler(#crary_req{method = "GET", uri = #uri{path = "/"}} = Req) ->
     crary:r(Req, ok, [{"content-type", "text/html"}],
             <<"<html><body>Hello World!</body></html>\r\n">>);
 handler(#crary_req{method = "GET"} = Req) ->
-    crary:not_found(Req);
+    throw(not_found);
 handler(#crary_req{method = "GET"} = Req) ->
-    crary:not_implemented(Req).
+    throw(not_implemented).
 '''
 
 Now run (you can install sinan by running `faxien install sinan' if

@@ -94,7 +94,7 @@
 %%% @type code() = integer() | atom() | binary().
 %%%       For example: `404' or `not_found' or `<<"404 Not Found">>'
 %%% @type proplist() = [Key::atom() | {Key::atom(), Value::term}]
-%%% @type mfa() = {Module::atom(), Function::atom(), Args::list()}
+%%% @type mfa() = {Module::atom(), Function::atom(), Args::list()} | function()
 %%% @type vsn() = {Major, Minor}
 %%%       Major = integer()
 %%%       Minor = integer()
@@ -216,6 +216,10 @@ pp(#crary_req{} = Req) ->
 %%                           aitch_body:write(W, "</body></html>"),
 %%                end).
 %% '''
+%%
+%% You can get the same effect by throwing the tuple:
+%% ```throw({resp, Code, Headers, BodyOrF})'''
+%%
 %% @spec r(crary_req(), code(), crary_headers:headers(), BodyOrF) -> ok
 %%       BodyOrF = Body | F
 %%       Body = iolist()
@@ -294,6 +298,10 @@ resp(Req, Code, Headers) ->
 %%                       "' is not supported by this server.",
 %%                       "Please only use 'GET' with this server"]).
 %% '''
+%%
+%% You can get the same effect by throwing the tuple:
+%% ```throw({resp_error, Code, Msg})'''
+%%
 %% @spec r_error(crary_req(), code(), iolist()) -> ok
 r_error(Req, Code, Msg) ->
     CodeStr = code_to_binary(Code),
@@ -311,7 +319,7 @@ Msg,
 <<"</ADDRESS>
 </BODY></HTML>">>]).
 
-%% @alias r_error/3
+%% @see r_error/3
 error(Req, Code, Msg) ->
     r_error(Req, Code, Msg).
 
@@ -324,6 +332,10 @@ error(Req, Code, Msg) ->
 %%    ro_handler(Req) -> % method =/= 'GET'
 %%        crary:not_implemented(Req).
 %% '''
+%%
+%% You can get the same effect by throwing the tuple:
+%% ```throw(not_implemented)'''
+%%
 %% @spec not_implemented(crary_req()) -> ok
 not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
     r_error(Req, 501,
@@ -334,6 +346,10 @@ not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
 
 %% @doc This is a short cut for sending 400, `Bad Request', error responses
 %% with the body already filled in.
+%%
+%% You can get the same effect by throwing the tuple:
+%% ```throw(bad_request)'''
+%%
 %% @spec bad_request(crary_req()) -> ok
 bad_request(Req) ->
     r_error(Req, 400,
@@ -379,6 +395,10 @@ internal_server_error(Req, Class, Reason, Stack) ->
 %%    handler(Req) -> % unknown uri
 %%        crary:not_found(Uri).
 %% '''
+%%
+%% You can get the same effect by throwing the tuple:
+%% ```throw(not_found)'''
+%%
 %% @spec not_found(crary_req()) -> ok
 not_found(#crary_req{uri = Uri} = Req) ->
     r_error(Req, 404,
@@ -387,6 +407,10 @@ not_found(#crary_req{uri = Uri} = Req) ->
 
 %% @doc This is a short cut for sending 403, `Forbidden' error
 %% responses with the body already filled in.
+%%
+%% You can get the same effect by throwing the tuple:
+%% ```throw(forbidden)'''
+%%
 %% @spec forbidden(crary_req()) -> ok
 forbidden(#crary_req{uri = Uri} = Req) ->
     r_error(Req, 403,
