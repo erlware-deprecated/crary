@@ -211,9 +211,9 @@ pp(#crary_req{} = Req) ->
 %% ```hello_handler(Req) ->
 %%        crary:r(Req, ok, [{"content-type", "text/html"}],
 %%                fun (W) ->
-%%                           aitch_body:write(W, "<html><body>"),
-%%                           aitch_body:write(W, "Hello World!"),
-%%                           aitch_body:write(W, "</body></html>"),
+%%                           crary_body:write(W, "<html><body>"),
+%%                           crary_body:write(W, "Hello World!"),
+%%                           crary_body:write(W, "</body></html>"),
 %%                end).
 %% '''
 %%
@@ -271,7 +271,7 @@ resp(Req, Code, Headers, BodyOrF) ->
 %% If you need to write a body or do body streaming, {@link r/4} may
 %% be a more convient function then this one.
 %%
-%% @spec r(aitch_req(), code(), crary_headers:headers()) -> ok
+%% @spec r(crary_req(), code(), crary_headers:headers()) -> ok
 r(Req, Code, Headers) ->
     crary_sock:write_resp_line(Req, Code),
     Headers2 = crary_headers:extend([{<<"server">>, ident(Req)},
