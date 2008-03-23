@@ -61,12 +61,8 @@
 %%%        <dd><p>The request method.</p>
 %%%            <p>Example: `"GET"'</p></dd>
 %%%
-%%%        <dt>uri::string()</dt>
-%%%        <dd><p>The request uri. Crary does not decode these, nor does it
-%%%            intend to ever do so; it may be only the path/query parts
-%%%            or it may be the absolute URI (see rfc2616, section 5.1.2).</p>
-%%%            <p>Examples: `"/index.html?sort=date"',
-%%%                         `"http://myhost.com:80/path/"'</p></dd>
+%%%        <dt>uri::{@link uri:uri()}</dt>
+%%%        <dd><p>The parsed uri structure.</p></dd>
 %%%
 %%%        <dt>headers::{@link crary_headers:headers()}</dt>
 %%%        <dd><p>The request headers. Use {@link crary_headers} to access the
