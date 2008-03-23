@@ -2,10 +2,12 @@
 % a completely seperate library
 -module(crary_util).
 
--export([rfc1123_date/0, spawn_link/1]).
+-export([rfc1123_date/0, rfc1123_date/1, spawn_link/1]).
 
 rfc1123_date() ->
-    {{Y, M, D} = Date, {H, N, S}} = calendar:universal_time(),
+    rfc1123_date(calendar:universal_time()).
+
+rfc1123_date({{Y, M, D} = Date, {H, N, S}}) ->
     io_lib:format("~s, ~.2.0w ~s ~b ~.2.0w:~.2.0w:~.2.0w GMT",
                   [dow_name(Date), D, moy_name(M), Y, H, N, S]).
 
