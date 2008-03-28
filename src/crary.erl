@@ -41,7 +41,7 @@
 -export([code_to_binary/1]).
 -export([ident/0, ident/1, long_ident/0]).
 -export([pp/1]).
--export([r/3, resp/3, r/4, resp/4, r_error/3, error/3]).
+-export([r/3, resp/3, r/4, resp/4, error_resp/3, error/3]).
 -export([not_implemented/1, internal_server_error/4, not_found/1, forbidden/1]).
 -export([bad_request/1]).
 -export([internal_server_error_html/4]).
@@ -304,17 +304,17 @@ resp(Req, Code, Headers) ->
 %%               crary:r(Req, ok, ["content-type", "text/plain"],
 %%                       "Hello World!");
 %%    ro_handler(crary_req{method = Method} = Req) when Method =/= 'GET' ->
-%%        crary:r_error(Req, not_implemented,
-%%                      ["The method `", Method,
-%%                       "' is not supported by this server.",
-%%                       "Please only use 'GET' with this server"]).
+%%        crary:error(Req, not_implemented,
+%%                    ["The method `", Method,
+%%                     "' is not supported by this server.",
+%%                     "Please only use 'GET' with this server"]).
 %% '''
 %%
 %% You can get the same effect by throwing the tuple:
 %% ```throw({resp_error, Code, Msg})'''
 %%
-%% @spec r_error(crary_req(), code(), iolist()) -> ok
-r_error(Req, Code, Msg) ->
+%% @spec error_resp(crary_req(), code(), iolist()) -> ok
+error_resp(Req, Code, Msg) ->
     CodeStr = code_to_binary(Code),
     r(Req, Code, [{<<"content-type">>, <<"text/html">>}],
       [<<"<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 4.0//EN\">
@@ -330,9 +330,9 @@ Msg,
 <<"</ADDRESS>
 </BODY></HTML>">>]).
 
-%% @see r_error/3
+%% @see error_resp/3
 error(Req, Code, Msg) ->
-    r_error(Req, Code, Msg).
+    error_resp(Req, Code, Msg).
 
 %% @doc This is a short cut for sending 501, `Not Implemented', error
 %% responses with the body already filled in.
@@ -349,11 +349,11 @@ error(Req, Code, Msg) ->
 %%
 %% @spec not_implemented(crary_req()) -> ok
 not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
-    r_error(Req, 501,
-            [<<"<P>">>, Method, <<" to ">>,
-             Uri#uri.raw, <<" not implemented.</P>\n">>,
-             <<"<P>Invalid method in request ">>, Method,
-             <<" HTTP/">>, vsn_to_iolist(Vsn), <<"</P>\n">>]).
+    error(Req, 501,
+          [<<"<P>">>, Method, <<" to ">>,
+           Uri#uri.raw, <<" not implemented.</P>\n">>,
+           <<"<P>Invalid method in request ">>, Method,
+           <<" HTTP/">>, vsn_to_iolist(Vsn), <<"</P>\n">>]).
 
 %% @doc This is a short cut for sending 400, `Bad Request', error responses
 %% with the body already filled in.
@@ -363,9 +363,9 @@ not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
 %%
 %% @spec bad_request(crary_req()) -> ok
 bad_request(Req) ->
-    r_error(Req, 400,
-            <<"<p>Your browser sent a request that this server
-                   could not understand.</p>">>).
+    error(Req, 400,
+          <<"<p>Your browser sent a request that this server
+                could not understand.</p>">>).
 
 %% @doc This generates the HTML that is used for 500, `Internal Server
 %% Error'. {@link crary_body:with_writer/2} uses this to display error
@@ -395,7 +395,7 @@ internal_server_error_html(#crary_req{uri = Uri, method = Method} = Req,
 %%
 %% @spec internal_server_error(crary_req(), atom(), term(), list()) -> ok
 internal_server_error(Req, Class, Reason, Stack) ->
-    r_error(Req, 500, internal_server_error_html(Req, Class, Reason, Stack)).
+    error(Req, 500, internal_server_error_html(Req, Class, Reason, Stack)).
 
 %% @doc This is a short cut for sending 404, `Not Found' error
 %% responses with the body already filled in.
@@ -412,9 +412,9 @@ internal_server_error(Req, Class, Reason, Stack) ->
 %%
 %% @spec not_found(crary_req()) -> ok
 not_found(#crary_req{uri = Uri} = Req) ->
-    r_error(Req, 404,
-            [<<"<P>The requested URL ">>, Uri#uri.raw,
-             <<" was not found on this server.</P>">>]).
+    error(Req, 404,
+          [<<"<P>The requested URL ">>, Uri#uri.raw,
+           <<" was not found on this server.</P>">>]).
 
 %% @doc This is a short cut for sending 403, `Forbidden' error
 %% responses with the body already filled in.
@@ -424,9 +424,9 @@ not_found(#crary_req{uri = Uri} = Req) ->
 %%
 %% @spec forbidden(crary_req()) -> ok
 forbidden(#crary_req{uri = Uri} = Req) ->
-    r_error(Req, 403,
-            [<<"<P>You don't have permission to access ">>, Uri#uri.raw,
-             <<" on this server.</P>">>]).
+    error(Req, 403,
+          [<<"<P>You don't have permission to access ">>, Uri#uri.raw,
+           <<" on this server.</P>">>]).
 
 %% @doc Given a number or atom of a standard HTTP response code, return
 %% a binary (string) of the number and name.
@@ -437,7 +437,7 @@ forbidden(#crary_req{uri = Uri} = Req) ->
 %% '''
 %%
 %% This function is used by functions such as {@link r/4}, {@link
-%% with_chunked_resp/4}, and {@link r_error/3} so that the `Code'
+%% with_chunked_resp/4}, and {@link error/3} so that the `Code'
 %% argument can be minimally specified.
 %%
 %% @spec code_to_binary(integer() | atom() | binary()) -> binary()
