@@ -33,7 +33,7 @@
 -include("crary.hrl").
 
 % application control
--export([start/2, start/3, stop/1, servers/0]).
+-export([start/2, start/3, start/4, stop/1, stop/2, servers/0]).
 
 % misc
 % TODO-- support long forms of the names
@@ -100,29 +100,44 @@
 %%% Server Control APIs
 %%%====================================================================
 
-%% @doc Start a crary server listening on `TcpPort'.
-%% @spec start(integer(), mfa() | {function(), Args}) -> pid()
-%% @see start/3
-start(TcpPort, Handler) ->
-    start(TcpPort, Handler, []).
-
 %% @doc Start a crary server listening on `TcpPort'. `Handler' will be
 %% called as `apply(M, F, [Req | Args])' for each request.
+%% @spec start(integer(), mfa() | {function(), Args}) -> pid()
+start(TcpPort, Handler) when is_integer(TcpPort) ->
+    start_child(TcpPort, [TcpPort, Handler, []]).
+
+%% @doc Start a crary server listening on `TcpPort' of
+%% `IpAddr'. `Handler' will be called as `apply(M, F, [Req | Args])'
+%% for each request.
+%% @spec start(inet:ip_address(), integer(), mfa() | {function(), Args}) -> pid()
+start(IpAddr, TcpPort, Handler) when is_integer(TcpPort) ->
+    start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
 %% @spec start(integer(), mfa() | {function(), Args}, proplist()) -> pid()
-start(TcpPort, Handler, Options) ->
-    Args = [TcpPort, Handler, Options],
+start(TcpPort, Handler, Opts) when is_integer(TcpPort), is_list(Opts) ->
+    start_child(TcpPort, [TcpPort, Handler, Opts]).
+
+start(IpAddr, TcpPort, Handler, Opts) ->
+    start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, Opts]).
+
+start_child(Ident, Args) ->
     case supervisor:start_child(crary_sup,
-                                {TcpPort, {crary_port, start_link, Args},
+                                {Ident,
+                                 {crary_port, start_link, Args},
                                  permanent, 5, worker, [crary_sup]}) of
         {ok, Child} -> Child;
         {error, Reason} -> throw({crary_error, Reason})
     end.
 
 %% @doc Stop the crary server that's running on `TcpPort'.
-%% @spec stop(integer()) -> ok
-stop(TcpPort) ->
-    ok = supervisor:terminate_child(crary_sup, TcpPort),
-    ok = supervisor:delete_child(crary_sup, TcpPort).
+%% @spec stop(TcpPort::integer()) -> ok
+stop(Ident) ->
+    ok = supervisor:terminate_child(crary_sup, Ident),
+    ok = supervisor:delete_child(crary_sup, Ident).
+
+%% @doc Stop the crary server that's running on `TcpPort' of `IpAddr'.
+%% @spec stop(inet:ip_address(), integer()) -> ok
+stop(IpAddr, TcpPort) ->
+    stop({IpAddr, TcpPort}).
 
 %% @doc Return a list of crary servers (as ports) currently running.
 %% @spec servers() -> [TcpPort::integer()]

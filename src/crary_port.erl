@@ -45,26 +45,27 @@
                 tcp_port,
                 acceptor,
                 handler,
-                options}).
+                opts}).
 
 %% @doc Start a crary_port server to listen on a port. Its not
 %% preferable to call this directly; see {@link crary:start/2}
-%% @spec start_link(integer(), crary:mfa()) ->
+%% @spec start_link(TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
+%%                  crary:mfa()) ->
 %%           {ok, pid()} | ignore |
 %%           {error, {already_started, pid()}} | {error, term()}
-start_link(TcpPort, Handler) ->
-    start_link(TcpPort, Handler, []).
+start_link(IpTcpPort, Handler) ->
+    start_link(IpTcpPort, Handler, []).
 
 %% @doc Start a crary_port server to listen on a port. Its not
 %% preferable to call this directly; see {@link crary:start/3}
-%% @spec start_link(integer(), crary:mfa(), crary:proplist()) ->
+%% @spec start_link(TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
+%%                  crary:mfa(), proplist()) ->
 %%           {ok, pid()} | ignore |
 %%           {error, {already_started, pid()}} | {error, term()}
 %% @see start_link/3
-start_link(TcpPort, Handler, Options) when is_integer(TcpPort) ->
-    Name = list_to_atom("crary_" ++ integer_to_list(TcpPort)),
-    gen_server:start_link({local, Name}, ?MODULE,
-                          {TcpPort, Handler, Options}, []).
+start_link(IpTcpPort, Handler, Opts) ->
+    gen_server:start_link({local, crary_name(IpTcpPort)}, ?MODULE,
+                          {IpTcpPort, Handler, Opts}, []).
 
 %% @doc {@link crary_sock} calls this to notify this module that it
 %% has successfully accept(2)ed a new connection. This module can then
@@ -81,15 +82,21 @@ accepted(ServerPid) ->
 %% @private
 %% @doc Called by gen_server framework at process startup. Create
 %% listening socket
-init({TcpPort, Handler, Options}) ->
+init({IpTcpPort, Handler, Opts}) ->
     process_flag(trap_exit, true),
-    case gen_tcp:listen(TcpPort, [binary, {packet, raw}, {active, false},
-                                  {exit_on_close, false}]) of
+    {ListenOpts, TcpPort} = case IpTcpPort of
+                                {IpAddr, TcpP} -> {[{ip, IpAddr}], TcpP};
+                                TcpP when is_integer(TcpP) -> {[], TcpP}
+                            end,
+    case gen_tcp:listen(TcpPort, [binary,
+                                  {packet, raw},
+                                  {active, false},
+                                  {exit_on_close, false} | ListenOpts]) of
         {ok, ListenSocket} ->
             try {ok, #state{listen_socket = ListenSocket,
                             tcp_port = TcpPort,
                             handler = Handler,
-                            options = Options}}
+                            opts = Opts}}
             %% send ourself a message so we'll start an initial acceptor
             %% once we've finished starting
             after gen_server:cast(self(), {accepted, null})
@@ -140,6 +147,22 @@ code_change(_OldVsn, State, _Extra) ->
 
 start_acceptor(#state{listen_socket = LS,
                       handler = H,
-                      options = Opts} = State) ->
+                      opts = Opts} = State) ->
     Pid = crary_sock:start_link(self(), LS, H, Opts),
     State#state{acceptor = Pid}.
+
+
+crary_name({{A, B, C, D}, TcpPort}) ->
+    list_to_atom(
+      lists:flatten(io_lib:format("crary_~w_~w_~w_~w__~w",
+                                  [A, B, C, D, TcpPort])));
+crary_name({{A, B, C, D, E, F, G, H}, TcpPort}) ->
+    list_to_atom(
+      lists:flatten(
+        io_lib:format("crary_" ++
+                      "~.16B_~.16B_~.16B_~.16B_~.16B_~.16B_~.16B_~.16B__" ++
+                      "~w",
+                      [A, B, C, D, E, F, G, H,
+                       TcpPort])));
+crary_name(TcpPort) when is_integer(TcpPort) ->
+    list_to_atom("crary_" ++ integer_to_list(TcpPort)).

@@ -13,7 +13,6 @@
 * logging
   * access
   * error?
-* support specifying which ip address to listen on
 * methods: head, put, post,
 * can the controller pass the body size (or "chunked") to the sock so the sock
   can limit the amount that can be read
