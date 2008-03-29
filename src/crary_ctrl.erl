@@ -86,6 +86,8 @@ call_handler(Req, MfaOrFun) ->
             crary:r(Req, Code, Headers, BodyOrF);
         throw:{resp_error, Code, Msg} ->
             crary:error(Req, Code, Msg);
+        throw:{resp_error, Code, Headers, Msg} ->
+            crary:error(Req, Code, Headers, Msg);
         throw:R when R == not_implemented;
                      R == bad_request;
                      R == not_found;

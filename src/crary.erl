@@ -41,7 +41,8 @@
 -export([code_to_binary/1]).
 -export([ident/0, ident/1, long_ident/0]).
 -export([pp/1]).
--export([r/3, resp/3, r/4, resp/4, error_resp/3, error/3]).
+-export([r/3, resp/3, r/4, resp/4]).
+-export([error_resp/3, error/3, error_resp/4, error/4]).
 -export([not_implemented/1, internal_server_error/4, not_found/1, forbidden/1]).
 -export([bad_request/1]).
 -export([internal_server_error_html/4]).
@@ -295,6 +296,14 @@ r(Req, Code, Headers) ->
 resp(Req, Code, Headers) ->
     r(Req, Code, Headers).
 
+%% @see error_resp/4
+error_resp(Req, Code, Msg) ->
+    error_resp(Req, Code, [], Msg).
+
+%% @see error_resp/4
+error(Req, Code, Msg) ->
+    error_resp(Req, Code, [], Msg).
+
 %% @doc Write a response for errors, this includes the standard error
 %% header and footer html. The `title' and `h1' are generated from the
 %% `Code'. `Msg' should be verbage describing the problem.
@@ -313,10 +322,10 @@ resp(Req, Code, Headers) ->
 %% You can get the same effect by throwing the tuple:
 %% ```throw({resp_error, Code, Msg})'''
 %%
-%% @spec error_resp(crary_req(), code(), iolist()) -> ok
-error_resp(Req, Code, Msg) ->
+%% @spec error_resp(crary_req(), code(), headers(), iolist()) -> ok
+error_resp(Req, Code, Headers, Msg) ->
     CodeStr = code_to_binary(Code),
-    r(Req, Code, [{<<"content-type">>, <<"text/html">>}],
+    r(Req, Code, [{<<"content-type">>, <<"text/html">>} | Headers],
       [<<"<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 4.0//EN\">
 <HTML><HEAD>
 <TITLE>">>, CodeStr, <<"</TITLE>
@@ -330,9 +339,9 @@ Msg,
 <<"</ADDRESS>
 </BODY></HTML>">>]).
 
-%% @see error_resp/3
-error(Req, Code, Msg) ->
-    error_resp(Req, Code, Msg).
+%% @see error_resp/4
+error(Req, Code, Headers, Msg) ->
+    error_resp(Req, Code, Headers, Msg).
 
 %% @doc This is a short cut for sending 501, `Not Implemented', error
 %% responses with the body already filled in.
