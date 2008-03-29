@@ -449,11 +449,16 @@ forbidden(#crary_req{uri = Uri} = Req) ->
 %% with_chunked_resp/4}, and {@link error/3} so that the `Code'
 %% argument can be minimally specified.
 %%
+%% The supported status codes are taken from:
+%%   ["http://en.wikipedia.org/wiki/List_of_HTTP_status_codes"]
+%%
 %% @spec code_to_binary(integer() | atom() | binary()) -> binary()
 code_to_binary(100)                 -> <<"100 Continue">>;
 code_to_binary(continue)            -> <<"100 Continue">>;
 code_to_binary(101)                 -> <<"101 Switching Protocols">>;
 code_to_binary(switching_protocols) -> <<"101 Switching Protocols">>;
+code_to_binary(102)                 -> <<"102 Processing">>;
+code_to_binary(processing)          -> <<"102 Processing">>;
 code_to_binary(200)                 -> <<"200 OK">>;
 code_to_binary(ok)                  -> <<"200 OK">>;
 code_to_binary(201)                 -> <<"201 Created">>;
@@ -469,6 +474,8 @@ code_to_binary(205)                 -> <<"205 Reset Content">>;
 code_to_binary(reset_content)       -> <<"205 Reset Content">>;
 code_to_binary(206)                 -> <<"206 Partial Content">>;
 code_to_binary(partial_content)     -> <<"206 Partial Content">>;
+code_to_binary(207)                 -> <<"207 Multi-Status">>;
+code_to_binary(multi_status)        -> <<"207 Multi-Status">>;
 code_to_binary(300)                 -> <<"300 Multiple Choices">>;
 code_to_binary(multiple_choices)    -> <<"300 Multiple Choices">>;
 code_to_binary(301)                 -> <<"301 Moved Permanently">>;
@@ -519,12 +526,28 @@ code_to_binary(request_uri_too_large) ->
 code_to_binary(415)                 -> <<"415 Unsupported Media Type">>;
 code_to_binary(unsupported_media_type) ->
                                        <<"415 Unsupported Media Type">>;
-code_to_binary(416)                 -> <<"416 Requested range not satisfiable">>;
+code_to_binary(416)                 ->
+    <<"416 Requested range not satisfiable">>;
 code_to_binary(requested_range_not_satisfiable) ->
-                                       <<"416 Requested range not",
-                                         " satisfiable">>;
+    <<"416 Requested range not satisfiable">>;
 code_to_binary(417)                 -> <<"417 Expectation Failed">>;
-code_to_binary(expectation_failed)  -> <<"417  Expectation Failed">>;
+code_to_binary(expectation_failed)  -> <<"417 Expectation Failed">>;
+code_to_binary(421)                 ->
+    <<"421 There are too many connections from your internet address">>;
+code_to_binary(too_many_connections) ->
+    <<"421 There are too many connections from your internet address">>;
+code_to_binary(422)                 -> <<"422 Unprocessable Entity">>;
+code_to_binary(unprocessable_entity)-> <<"422 Unprocessable Entity">>;
+code_to_binary(423)                 -> <<"423 Locked">>;
+code_to_binary(locked)              -> <<"423 Locked">>;
+code_to_binary(424)                 -> <<"424 Failed Dependency">>;
+code_to_binary(failed_dependency)   -> <<"424 Failed Dependency">>;
+code_to_binary(425)                 -> <<"425 Unordered Collection">>;
+code_to_binary(unordered_collection)-> <<"425 Unordered Collection">>;
+code_to_binary(426)                 -> <<"426 Upgrade Required">>;
+code_to_binary(upgrade_required)    -> <<"426 Upgrade Required">>;
+code_to_binary(449)                 -> <<"449 Retry With">>;
+code_to_binary(retry_with)          -> <<"449 Retry With">>;
 code_to_binary(500)                 -> <<"500 Internal Server Error">>;
 code_to_binary(internal_server_error) ->
                                        <<"500 Internal Server Error">>;
@@ -539,5 +562,15 @@ code_to_binary(gateway_time_out)    -> <<"504 Gateway Time-out">>;
 code_to_binary(505)                 -> <<"505 HTTP Version not supported">>;
 code_to_binary(http_version_not_supported) ->
                                        <<"505 HTTP Version not supported">>;
+code_to_binary(506)                 -> <<"506 Variant Also Negotiates">>;
+code_to_binary(variant_also_negotiates) ->
+                                       <<"506 Variant Also Negotiates">>;
+code_to_binary(507)                 -> <<"507 Insufficient Storage">>;
+code_to_binary(insufficient_storage)-> <<"507 Insufficient Storage">>;
+code_to_binary(509)                 -> <<"509 Bandwidth Limit Exceeded">>;
+code_to_binary(bandwidth_limit_exceeded)
+                                    -> <<"509 Bandwidth Limit Exceeded">>;
+code_to_binary(510)                 -> <<"510 Not Extended">>;
+code_to_binary(not_extended)        -> <<"510 Not Extended">>;
 code_to_binary(Code) ->
     Code.
