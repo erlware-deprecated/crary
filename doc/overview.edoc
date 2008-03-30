@@ -156,13 +156,13 @@ libogg isn't a music player, but is a building block for creating
 music players.
 
 An example of how this influences the design of crary can be seen in
-the crary_dav. Unlike most dav modules for web-servers, it has no
+the crary_dav_fs. Unlike most dav modules for web-servers, it has no
 configuration language to control who has permissions to do what to
 which parts of the file system. In fact, it doesn't even define its
 own handler. Rather it is a set of functions that can be used to
 create a webdav server. Authentication and authorization are
 completely orthogonal and are treated as such: for simple use, you
-might create a handler using crary_dav that will allow read-only
+might create a handler using crary_dav_fs that will allow read-only
 access to some directories--no authentication needed. Or, you can mix
 it with a separate authentication and authorization components to
 create a sophisticated webdav environment that matches your needs.
