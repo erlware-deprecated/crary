@@ -18,8 +18,6 @@
   can limit the amount that can be read
 * is it possible to keep writes safe?
 * propogate timeouts to the right places in crary_sock
-* document exactly what's expected of a handler (ie should only use
-  crary_socket:read(), must be exact in bytes read/written, etc)
 * transfer codings (3.6)
   + chunked
   + identity

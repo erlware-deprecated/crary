@@ -50,7 +50,7 @@
 %% @doc Start a crary_port server to listen on a port. Its not
 %% preferable to call this directly; see {@link crary:start/2}
 %% @spec start_link(TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
-%%                  crary:mfa()) ->
+%%                  crary:handler()) ->
 %%           {ok, pid()} | ignore |
 %%           {error, {already_started, pid()}} | {error, term()}
 start_link(IpTcpPort, Handler) ->
@@ -59,7 +59,7 @@ start_link(IpTcpPort, Handler) ->
 %% @doc Start a crary_port server to listen on a port. Its not
 %% preferable to call this directly; see {@link crary:start/3}
 %% @spec start_link(TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
-%%                  crary:mfa(), proplist()) ->
+%%                  crary:handler(), proplist()) ->
 %%           {ok, pid()} | ignore |
 %%           {error, {already_started, pid()}} | {error, term()}
 %% @see start_link/3

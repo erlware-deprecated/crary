@@ -87,7 +87,50 @@
 %%%       need to interact with this record.
 %%% @end
 
+%%% @type handler() = mfa().
 %%%
+%%%      Crary reads in a request and headers and parses them, but
+%%%      most of the rest is left up to the handler. A handler is a
+%%%      callback which is passed the {@link crary_req()} record;
+%%%      ultimately the job of the handler is to:
+%%%
+%%%      <ul>
+%%%       <li> If applicable, read the request body and call {@link
+%%%            crary_sock:done_reading/1}. Since crary supports
+%%%            connection pipe-lining, the sooner {@link
+%%%            crary_sock:done_reading/1} is called, the sooner
+%%%            the next request can be started.</li>
+%%%       <li> Write an HTTP response </li>
+%%%       <li> Call {@link crary_sock:done_writing/1}</li>
+%%%      </ul>
+%%%
+%%%      The handler is usually a process created to handle a single
+%%%      request in a connection/pipeline of requests. However, this
+%%%      is not always the case, so you should always let the handler
+%%%      return (ie don't re-use the process to do long-lived
+%%%      non-connection related things).
+%%%
+%%%      A handler should only use {@link crary_sock:read/3} and
+%%%      similar or derived functions for consuming data from the
+%%%      connection.
+%%%
+%%%      While the handler is free to do pretty much anything, crary
+%%%      provides quite a few functions to make commonly done things
+%%%      easy. For instance, {@link crary} supplies methods such as
+%%%      {@link r/4}, {@link error/4}, and {@link not_found/1}. As a
+%%%      convenience many of these can also be triggered by throwing an
+%%%      appropriate expression. For more information on what to throw
+%%%      see the documentation for the various functions in this
+%%%      module.
+%%%
+%%%      If your handler throws an exception that wasn't of one of the
+%%%      anticipated types, an ``internal service error'' response
+%%%      will automatically be generated.
+%%%
+%%%      The handler returned value is completely ignored.
+%%%
+%%% @end
+
 %%% @type code() = integer() | atom() | binary().
 %%%       For example: `404' or `not_found' or `<<"404 Not Found">>'
 %%% @type proplist() = [Key::atom() | {Key::atom(), Value::term}]
@@ -103,17 +146,18 @@
 
 %% @doc Start a crary server listening on `TcpPort'. `Handler' will be
 %% called as `apply(M, F, [Req | Args])' for each request.
-%% @spec start(integer(), mfa() | {function(), Args}) -> pid()
+%% @spec start(integer(), handler() | {function(), Args}) -> pid()
 start(TcpPort, Handler) when is_integer(TcpPort) ->
     start_child(TcpPort, [TcpPort, Handler, []]).
 
 %% @doc Start a crary server listening on `TcpPort' of
 %% `IpAddr'. `Handler' will be called as `apply(M, F, [Req | Args])'
 %% for each request.
-%% @spec start(inet:ip_address(), integer(), mfa() | {function(), Args}) -> pid()
+%% @spec start(inet:ip_address(), integer(), handler() | {function(), Args}) ->
+%%           pid()
 start(IpAddr, TcpPort, Handler) when is_integer(TcpPort) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
-%% @spec start(integer(), mfa() | {function(), Args}, proplist()) -> pid()
+%% @spec start(integer(), handler() | {function(), Args}, proplist()) -> pid()
 start(TcpPort, Handler, Opts) when is_integer(TcpPort), is_list(Opts) ->
     start_child(TcpPort, [TcpPort, Handler, Opts]).
 
@@ -319,8 +363,11 @@ error(Req, Code, Msg) ->
 %%                     "Please only use 'GET' with this server"]).
 %% '''
 %%
-%% You can get the same effect by throwing the tuple:
-%% ```throw({resp_error, Code, Msg})'''
+%% You can get the same effect by throwing one of these tuples:
+%% <ul>
+%%  <li>```throw({resp_error, Code, Headers, Msg})'''</li>
+%%  <li>```throw({resp_error, Code, Msg})'''</li>
+%% </ul>
 %%
 %% @spec error_resp(crary_req(), code(), headers(), iolist()) -> ok
 error_resp(Req, Code, Headers, Msg) ->
