@@ -11,8 +11,7 @@
               crary_port,
               crary_sock,
               crary_sup,
-              crary_util,
-              example
+              crary_util
              ]},
    {registered,[crary_sup]},
    {applications, [kernel, stdlib, sasl, uri]},
