@@ -203,16 +203,16 @@ read(S, Len, Opts) when is_list(Opts) ->
 read(#sock{r = R, resp = Resp}, Len, Timeout) ->
     erlang:send(R, {self(), read, Resp, Len, Timeout}),
     receive
-        {ok, <<>>} ->
+        {Resp, {ok, <<>>}} ->
             throw({crary_sock, eof});
-        {ok, Data} ->
+        {Resp, {ok, Data}} ->
             Data;
-        {error, closed} ->
+        {Resp, {error, closed}} ->
             throw({crary_sock, eof});
         %% known errors: timeout, emsgsize
-        {error, timeout} ->
+        {Resp, {error, timeout}} ->
             throw({crary_sock, timeout});
-        {error, Error} ->
+        {Resp, {error, Error}} ->
             io:format("read error: ~p~n", [Error]),
             throw({crary_sock, {read_error, Error}})
     end.
@@ -294,9 +294,9 @@ write(#crary_req{sock = S}, Data) ->
 write(#sock{w = W, resp = Resp}, Data) ->
     erlang:send(W, {self(), write, Resp, Data}),
     receive
-        ok         -> ok;
-        {error, R} -> throw({crary_sock, {write_error, R}});
-        Msg        -> throw({crary_sock, {unknown_w_msg, Msg}})
+        {Resp, ok}         -> ok;
+        {Resp, {error, R}} -> throw({crary_sock, {write_error, R}});
+        {Resp, Msg}        -> throw({crary_sock, {unknown_w_msg, Msg}})
     end.
 
 %% @doc Write the response line to the socket.
@@ -423,7 +423,7 @@ r_sock_loop(#r_state{sock = S, ctrl = Ctrl, resp = Resp} = State) ->
     r_sock_loop(
       receive
           {Pid, read, Resp, Len, Timeout} ->
-              erlang:send(Pid, gen_tcp:recv(S, Len, Timeout)),
+              erlang:send(Pid, {Resp, gen_tcp:recv(S, Len, Timeout)}),
               State;
 
           {unread, Resp, Data} ->
@@ -465,7 +465,7 @@ w_sock_loop(#w_state{sock = S, ctrl = Ctrl, resp = Resp} = State) ->
     w_sock_loop(receive
                     {Pid, write, PidResp, Data}
                     when PidResp == Resp; PidResp == Ctrl->
-                        erlang:send(Pid, gen_tcp:send(S, Data)),
+                        erlang:send(Pid, {Resp, gen_tcp:send(S, Data)}),
                         State;
 
                     {done_writing, Resp} ->
