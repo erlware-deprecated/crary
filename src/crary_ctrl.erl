@@ -102,11 +102,13 @@ setup_uri(#crary_req{uri = Uri} = Req) ->
     UriRec = uri:from_http_1_1("http", crary_headers:get("host", Req), Uri),
     Req#crary_req{uri = UriRec}.
 
-call_handler(Req, MfaOrFun) ->
+call_handler(Req, Handler) ->
     try
-        case MfaOrFun of
-            {M, F, Args} -> apply(M, F, [Req | Args]);
-            {F, Args}    -> apply(F, [Req | Args])
+        case Handler of
+            {M, F, Args}          -> apply(M, F, [Req | Args]);
+            F when is_function(F) -> F(Req);
+            Unknown ->
+                throw({crary_ctrl_error, {unknown_handler_type, Unknown}})
         end
     catch
         throw:{resp, Code, Headers, BodyOrF} ->

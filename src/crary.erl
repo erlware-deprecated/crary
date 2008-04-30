@@ -87,7 +87,7 @@
 %%%       need to interact with this record.
 %%% @end
 
-%%% @type handler() = mfa().
+%%% @type handler() = mfa() | function().
 %%%
 %%%      Crary reads in a request and headers and parses them, but
 %%%      most of the rest is left up to the handler. A handler is a
@@ -146,22 +146,38 @@
 
 %% @doc Start a crary server listening on `TcpPort'. `Handler' will be
 %% called as `apply(M, F, [Req | Args])' for each request.
-%% @spec start(integer(), handler() | {function(), Args}) -> pid()
-start(TcpPort, Handler) when is_integer(TcpPort) ->
+%% @spec start(integer(), handler()) -> pid()
+start(TcpPort, {M, F, A} = Handler)
+  when is_integer(TcpPort), is_atom(M), is_atom(F), is_list(A) ->
+    start_child(TcpPort, [TcpPort, Handler, []]);
+start(TcpPort, Handler)
+  when is_integer(TcpPort), is_function(Handler) ->
     start_child(TcpPort, [TcpPort, Handler, []]).
 
 %% @doc Start a crary server listening on `TcpPort' of
 %% `IpAddr'. `Handler' will be called as `apply(M, F, [Req | Args])'
 %% for each request.
-%% @spec start(inet:ip_address(), integer(), handler() | {function(), Args}) ->
+%% @spec start(inet:ip_address(), integer(), handler()) ->
 %%           pid()
-start(IpAddr, TcpPort, Handler) when is_integer(TcpPort) ->
+start(IpAddr, TcpPort, {M, F, A} = Handler)
+  when is_integer(TcpPort), is_atom(M), is_atom(F), is_list(A) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
-%% @spec start(integer(), handler() | {function(), Args}, proplist()) -> pid()
-start(TcpPort, Handler, Opts) when is_integer(TcpPort), is_list(Opts) ->
+start(IpAddr, TcpPort, Handler)
+  when is_integer(TcpPort), is_function(Handler) ->
+    start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
+%% @spec start(integer(), handler(), proplist()) -> pid()
+start(TcpPort, {M, F, A} = Handler, Opts)
+  when is_integer(TcpPort), is_list(Opts), is_atom(M), is_atom(F), is_list(A) ->
+    start_child(TcpPort, [TcpPort, Handler, Opts]);
+start(TcpPort, Handler, Opts)
+  when is_integer(TcpPort), is_list(Opts), is_function(Handler) ->
     start_child(TcpPort, [TcpPort, Handler, Opts]).
 
-start(IpAddr, TcpPort, Handler, Opts) ->
+start(IpAddr, TcpPort, {M, F, A} = Handler, Opts)
+  when is_integer(TcpPort), is_list(Opts), is_atom(M), is_atom(F), is_list(A) ->
+    start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, Opts]);
+start(IpAddr, TcpPort, Handler, Opts)
+  when is_integer(TcpPort), is_list(Opts), is_function(Handler) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, Opts]).
 
 start_child(Ident, Args) ->

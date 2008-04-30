@@ -84,7 +84,7 @@
 
 %% @doc Usually only called by crary_port to spawn/accept/process.
 %% @spec start_link(Port::pid(), ListenSock::port(),
-%%                  crary:mfa(), crary:proplists()) -> pid()
+%%                  crary:handler(), crary:proplists()) -> pid()
 start_link(PortPid, ListenSock, Handler, Opts) ->
     crary_util:spawn_link(
       fun() -> accept(PortPid, ListenSock, Handler, Opts) end).
@@ -92,7 +92,7 @@ start_link(PortPid, ListenSock, Handler, Opts) ->
 %% @private
 %% @doc accept() on the socket and process resulting connection.
 %% @spec accept(Port::pid(), ListenSock::port(),
-%%              crary:mfa(), crary:proplist()) -> none()
+%%              crary:handler(), crary:proplist()) -> none()
 accept(PortPid, ListenSock, Handler, Opts) ->
     case gen_tcp:accept(ListenSock) of
         {ok, Sock} ->
@@ -106,7 +106,7 @@ accept(PortPid, ListenSock, Handler, Opts) ->
 %% @private
 %% @doc create processes for, link-together, and start the writer,
 %% reader, and controller
-%% @spec start_ctrl_with_wrapped_sock(Sock::port(), crary:mfa(),
+%% @spec start_ctrl_with_wrapped_sock(Sock::port(), crary:handler(),
 %%                                    crary:proplist()) -> none()
 start_ctrl_with_wrapped_sock(Sock, Handler, Opts) ->
     Ctrl = make_ref(),
