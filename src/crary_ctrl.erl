@@ -36,9 +36,7 @@
 -define(OPT_DEFAULTS,
         [{keep_alive_timeout, 30000}, % in milliseconds
          {keep_alive_max_requests, infinity},
-% todo: uncomment:
-%         {read_timeout, 30000}, % in milliseconds
-         {read_timeout, 5000}, % in milliseconds
+         {read_timeout, 30000}, % in milliseconds
          {write_timeout, 30000}, % in milliseconds
          {max_body_size, 10 * 1024 * 1024}, % in bytes
          {max_header_size, 10 * 1024 * 1024} % in bytes
@@ -71,8 +69,9 @@ ctrl_loop(S, Handler, Opts, NReqs) ->
             ctrl_loop(S, Handler, Opts, dec_keep_alive_requests(NReqs));
         false ->
             call_handler(Req, Handler),
-            crary_sock:close(S)
-    end.
+            crary_sock:close_reader(S),
+            exit(normal)
+        end.
 
 make_resp_s(Req) ->
     Req#crary_req{sock = crary_sock:new_resp(
@@ -88,7 +87,7 @@ read_req_line(Req) ->
     catch
         {crary_sock, parse_error} ->
             crary:bad_request(Req),
-            crary_sock:close(Req),
+            crary_sock:close_reader(Req),
             exit(normal);
         {crary_sock, eof} ->
             crary_sock:close_reader(Req),

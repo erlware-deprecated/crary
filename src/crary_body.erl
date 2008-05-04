@@ -164,7 +164,7 @@ done_writing(Req) ->
 %% @doc Writing the `Trailers' and the closing chunk.
 %% @spec done_writing(crary:crary_req(), crary_headers:headerish()) -> ok
 done_writing(Req, Trailers) ->
-    crary_sock:write(<<"0\r\n">>),
+    crary_sock:write(Req, <<"0\r\n">>),
     crary_headers:write(Req, Trailers).
 
 %%%====================================================================

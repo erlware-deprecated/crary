@@ -39,10 +39,12 @@
 -export([read_req_line/1, read_req_line/2]).
 -export([write_resp_line/2, write_resp_line/3]).
 -export([done_reading/1, done_writing/1]).
--export([new_resp/2]).
 -export([sockname/1, peername/1]).
 -export([peer_name/1, peer_port/1, this_name/1, this_port/1]).
--export([close/1, close_reader/1]).
+
+%% methods for crary_ctrl
+-export([close_reader/1]).
+-export([new_resp/2]).
 
 -include("crary.hrl").
 
@@ -69,12 +71,12 @@
 %% socket from the client, but avoid having to have a seperate process
 %% to handle them (for instance, peername() can't be handled by the
 %% reader as sometimes peername() is needed while the reader is blocked
--record(sock, {r,        %% pid() of reader
-               w,        %% pid() of writer
-               resp,     %% reference() identifies when this sock can read/write
-               sockname, %% fun() which returns socket's inet:sockname()
-               peername, %% fun() which returns socket's inet:peername()
-               close}).  %% fun() which returns socket's inet:close()
+-record(sock, {r,          %% pid() of reader
+               w,          %% pid() of writer
+               resp,       %% reference() identifies when this sock can
+                           %% be read from / written to
+               sockname,   %% fun() which returns socket's inet:sockname()
+               peername}). %% fun() which returns socket's inet:peername()
 
 %%% @type sock() = record()
 %%% @type r_state() = record()
@@ -110,65 +112,53 @@ accept(PortPid, ListenSock, Handler, Opts) ->
 %%                                    crary:proplist()) -> none()
 start_ctrl_with_wrapped_sock(Sock, Handler, Opts) ->
     Ctrl = make_ref(),
-    WPid = start_link_w(Sock, Ctrl, self()),
-    crary_ctrl:start_link(new_sock(self(), WPid, Ctrl, Sock), Handler, Opts),
-    start_r(Sock, Ctrl, WPid).
+    RPid = start_link_r(Sock, Ctrl, self()),
+    crary_ctrl:start_link(new_sock(RPid, self(), Ctrl, Sock), Handler, Opts),
+    %% this process (self()) is linked to the port; we'll let this process
+    %% become the writer as the reader and control processes can exit early,
+    %% but the writer always has to be the last process to exit.
+    start_w(Sock, Ctrl, RPid).
 
 new_sock(RPid, WPid, Ctrl, Sock) ->
     #sock{r = RPid,
           w = WPid,
           resp = Ctrl,
           sockname = fun() -> inet:sockname(Sock) end,
-          peername = fun() -> inet:peername(Sock) end,
-          close = fun() -> gen_tcp:close(Sock) end}.
+          peername = fun() -> inet:peername(Sock) end}.
 
 %% @private
 %% @doc start the reader process by taking over this process
 %% @spec start_r(Sock::port(), Ctrl::reference(), Writer::pid()) -> none()
-start_r(Sock, Ctrl, W) ->
-    process_flag(trap_exit, true),
-    r_sock_loop(#r_state{sock = Sock,
-                         ctrl = Ctrl,
-                         w = W,
-                         resp = Ctrl,
-                         resp_q = queue:new()}).
+start_link_r(Sock, Ctrl, W) ->
+    crary_util:spawn_link(
+      fun () ->
+              process_flag(trap_exit, true),
+              r_sock_loop(#r_state{sock = Sock,
+                                   ctrl = Ctrl,
+                                   w = W,
+                                   resp = Ctrl,
+                                   resp_q = queue:new()})
+      end).
 
 %% @private
 %% @doc spawn/start the writer process
 %% @spec start_link_w(Sock::port(), Ctrl::reference(), Reader::pid()) -> none()
-start_link_w(Sock, Ctrl, R) ->
-    crary_util:spawn_link(
-      fun () ->
-              process_flag(trap_exit, true),
-              w_sock_loop(#w_state{sock = Sock,
-                                   ctrl = Ctrl,
-                                   resp_q = queue:new(),
-                                   r = R})
-      end).
+start_w(Sock, Ctrl, R) ->
+    process_flag(trap_exit, true),
+    w_sock_loop(#w_state{sock = Sock,
+                         ctrl = Ctrl,
+                         resp_q = queue:new(),
+                         r = R}).
 
-%% @doc Close the socket, shutdown the reader and writer.
-%%
-%% Only call this if you really want to close the connection, otherwise
-%% this will terminate any futher pipe-lined requests.
-%%
-%% @spec close(sock() | crary:crary_req()) -> ok
-%% @throws {crary_sock, {error_closing_sock, R}}
-close(#crary_req{sock = S}) ->
-    close(S);
-close(#sock{r = R, w = W, resp = Ctrl, close = Close}) ->
-    erlang:send(R, {close, Ctrl}),
-    erlang:send(W, {close, Ctrl}),
-    case Close() of
-        ok -> ok;
-        {error, R} -> exit({crary_sock, {error_closing_sock, R}})
-    end.
-
+%% @private
 %% @doc Close the read half of the TCP socket.
 %%
 %% On hitting `EOF' when reading, we don't know if it was a full
 %% close() or a half duplex shutdown(), so close the reader, and add
 %% 'close' to the writers resp_q to finish shutting down when the last
 %% pipe-lined response has been written.
+%%
+%% Only the crary_ctrl can use this function.
 %%
 %% @spec close_reader(Sock::sock() | crary:crary_req()) -> ok
 %% @throws {crary_sock, {error_closing_sock, Reason::term()}}
@@ -392,6 +382,7 @@ done_writing(#sock{w = W, resp = Resp}) ->
     erlang:send(W, {done_writing, Resp}),
     ok.
 
+%% @private
 %% @doc Used by a controller: return a new {@link sock()} for a new handler.
 %%
 %% This should be called to create a unique {@link sock()} for each
@@ -473,9 +464,6 @@ w_sock_loop(#w_state{sock = S, ctrl = Ctrl, resp = Resp} = State) ->
 
                     {add_resp, Ctrl, NewResp} ->
                         w_add_resp_(State, NewResp);
-
-                    {close, Ctrl} ->
-                        exit(normal);
 
                     {'EXIT', _From, normal} ->
                         State;
