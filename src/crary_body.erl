@@ -57,6 +57,7 @@
 %%    This is the handle to the writer that {@link new_writer/1} will
 %%    return. Please treat is as a transparent value at the moment as
 %%    the implementation of it can and will change in the future.
+%% @type reader() = pid().
 
 %%%====================================================================
 %%% public
@@ -64,13 +65,13 @@
 
 %% @doc Does this request have a body that needs to be read? It determins
 %% this by checking for `content-length' or `transfer-encoding' headers.
-%% @spec has_body(crary:crary_req()) -> bool()
+%% @spec (crary:crary_req()) -> bool()
 has_body(Req) ->
     crary_headers:has("content-length", Req) orelse
         crary_headers:has("transfer-encoding", Req).
 
 %% @doc Return a new chunk reader.
-%% @spec new_reader(crary:crary_req()) -> pid()
+%% @spec (crary:crary_req()) -> reader()
 new_reader(Req) ->
     gen_server:start_link(?MODULE, init, Req, []).
 
@@ -80,7 +81,7 @@ new_reader(Req) ->
 %% `Req' that was passed to it. Don't depend on this, it will likely
 %% be changed to a pid() or similar in the future for supporting
 %% buffering or other encodings.
-%% @spec new_writer(crary:crary_req()) -> writer()
+%% @spec (crary:crary_req()) -> writer()
 %% @see with_writer/2
 %% @see crary:r/4
 new_writer(Req) ->
@@ -96,7 +97,7 @@ new_writer(Req) ->
 %% behavior for your application, use a try/catch form in `F' to keep
 %% errors from making it down the stack to here.
 %%
-%% @spec with_writer(crary:crary_req(), function()) -> pid()
+%% @spec (crary:crary_req(), function()) -> pid()
 with_writer(Req, F) ->
     W = new_writer(Req),
     try F(W)
@@ -108,12 +109,12 @@ with_writer(Req, F) ->
     end.
 
 %% @doc Read and return the next available chunk.
-%% @spec read(pid()) -> binary()
+%% @spec (reader()) -> binary()
 read(S) ->
     gen_server:call(S, read, infinity).
 
 %% @doc Read and return `Len' bytes.
-%% @spec read(pid(), integer()) -> binary()
+%% @spec (reader(), integer()) -> binary()
 read(S, Len) ->
     gen_server:call(S, {read, Len}, infinity).
 
@@ -121,7 +122,7 @@ read(S, Len) ->
 %% is chunked or fixed length, this will read it all in and return it
 %% as one binary. Probably great for `PUT' bodies for forms. Probably
 %% not great for reading in a large amount of data.
-%% @spec read_all(crary:crary_req()) -> binary()
+%% @spec (crary:crary_req()) -> binary()
 read_all(Req) ->
     MaxBytes = proplists:get_value(max_body_size, Req#crary_req.opts, infinity),
     case crary_headers:get("content-length", Req, null) of
@@ -147,7 +148,7 @@ read_all(Req) ->
 %% @doc Write a chunk of data. At the moment, this data is immediately
 %% written as a chunk, regardless of the size. In the future writes
 %% may get buffered, probably with a configurable buffer size.
-%% @spec write(writer(), Data::iolist()) -> ok
+%% @spec (writer(), Data::iolist()) -> ok
 write(_Req, "") ->
     ok;
 write(#crary_req{vsn = Vsn} = Req, Data) when Vsn == {1, 0}; Vsn == {0, 9} ->
@@ -158,7 +159,7 @@ write(Req, Data) ->
 
 %% @doc Writing the closing chunk. For pre-http-1.1 streaming this also
 %% closes the socket.
-%% @spec done_writing(writer()) -> ok
+%% @spec (writer()) -> ok
 done_writing(#crary_req{vsn = {1, 0}} = Req) ->
     %% since we were streaming, we can't keep-alive for http 1.0, even
     %% if that was requested
@@ -167,7 +168,7 @@ done_writing(Req) ->
     crary_sock:write(Req, <<"0\r\n\r\n">>).
 
 %% @doc Writing the `Trailers' and the closing chunk.
-%% @spec done_writing(writer(), crary_headers:headerish()) -> ok
+%% @spec (writer(), crary_headers:headerish()) -> ok
 done_writing(Req, Trailers) ->
     crary_sock:write(Req, <<"0\r\n">>),
     crary_headers:write(Req, Trailers).

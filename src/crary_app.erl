@@ -39,9 +39,9 @@
 %%=================================================================
 
 %%-----------------------------------------------------------------
-%% @spec start(Type, StartArgs) -> {ok, Pid}        |
-%%                                 {ok, Pid, State} |
-%%                                 {error, Reason}
+%% @spec (Type, StartArgs) -> {ok, Pid}        |
+%%                            {ok, Pid, State} |
+%%                            {error, Reason}
 %% @doc
 %%  This function is called whenever an application
 %%  is started using application:start/1,2, and should
@@ -60,7 +60,7 @@ start(_Type, _StartArgs) ->
     end.
 
 %%-----------------------------------------------------------------
-%% @spec stop(State) -> void()
+%% @spec (State) -> void()
 %% @doc
 %%  This function is called whenever an application
 %%  has stopped. It is intended to be the opposite of

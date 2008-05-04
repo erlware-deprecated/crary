@@ -146,7 +146,7 @@
 
 %% @doc Start a crary server listening on `TcpPort'. `Handler' will be
 %% called as `apply(M, F, [Req | Args])' for each request.
-%% @spec start(integer(), handler()) -> pid()
+%% @spec (integer(), handler()) -> pid()
 start(TcpPort, {M, F, A} = Handler)
   when is_integer(TcpPort), is_atom(M), is_atom(F), is_list(A) ->
     start_child(TcpPort, [TcpPort, Handler, []]);
@@ -157,15 +157,14 @@ start(TcpPort, Handler)
 %% @doc Start a crary server listening on `TcpPort' of
 %% `IpAddr'. `Handler' will be called as `apply(M, F, [Req | Args])'
 %% for each request.
-%% @spec start(inet:ip_address(), integer(), handler()) ->
-%%           pid()
+%% @spec (inet:ip_address(), integer(), handler()) -> pid()
 start(IpAddr, TcpPort, {M, F, A} = Handler)
   when is_integer(TcpPort), is_atom(M), is_atom(F), is_list(A) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
 start(IpAddr, TcpPort, Handler)
   when is_integer(TcpPort), is_function(Handler) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
-%% @spec start(integer(), handler(), proplist()) -> pid()
+%% @spec (integer(), handler(), proplist()) -> pid()
 start(TcpPort, {M, F, A} = Handler, Opts)
   when is_integer(TcpPort), is_list(Opts), is_atom(M), is_atom(F), is_list(A) ->
     start_child(TcpPort, [TcpPort, Handler, Opts]);
@@ -190,18 +189,18 @@ start_child(Ident, Args) ->
     end.
 
 %% @doc Stop the crary server that's running on `TcpPort'.
-%% @spec stop(TcpPort::integer()) -> ok
+%% @spec (TcpPort::integer()) -> ok
 stop(Ident) ->
     ok = supervisor:terminate_child(crary_sup, Ident),
     ok = supervisor:delete_child(crary_sup, Ident).
 
 %% @doc Stop the crary server that's running on `TcpPort' of `IpAddr'.
-%% @spec stop(inet:ip_address(), integer()) -> ok
+%% @spec (inet:ip_address(), integer()) -> ok
 stop(IpAddr, TcpPort) ->
     stop({IpAddr, TcpPort}).
 
 %% @doc Return a list of crary servers (as ports) currently running.
-%% @spec servers() -> [TcpPort::integer()]
+%% @spec () -> [TcpPort::integer()]
 servers() ->
     lists:map(fun ({Id, _Child, _Type, _Modules}) -> Id end,
               supervisor:which_children(crary_sup)).
@@ -211,27 +210,27 @@ servers() ->
 %%%====================================================================
 
 %% @doc Parse the HTTP version string into a version tuple of `{Maj, Min}'.
-%% @spec list_to_vsn(string()) -> vsn()
+%% @spec (string()) -> vsn()
 list_to_vsn(VsnStr) ->
     {Maj, [$. | MinS]} = string:to_integer(VsnStr),
     {Maj, list_to_integer(MinS)}.
 
 %% @doc Convert a {@link vsn()} tuple to a string.
-%% @spec vsn_to_iolist(vsn()) -> string()
+%% @spec (vsn()) -> string()
 vsn_to_iolist(#crary_req{vsn = Vsn}) ->
     vsn_to_iolist(Vsn);
 vsn_to_iolist({Maj, Min}) ->
     [integer_to_list(Maj), $., integer_to_list(Min)].
 
 %% @doc Return an iolist of the short ident string such as: `crary/1.0.5'.
-%% @spec ident() -> iolist()
+%% @spec () -> iolist()
 ident() ->
     {ok, Vsn} = application:get_key(crary, vsn),
     [<<"crary/">>, Vsn].
 
 %% @doc Return an iolist of the ident, using `Opts' to determin if the long
 %% or short ident string should be used.
-%% @spec ident(proplist()) -> iolist()
+%% @spec (proplist()) -> iolist()
 %% @see ident/0
 %% @see long_ident/0
 ident(#crary_req{opts = Opts}) ->
@@ -245,7 +244,7 @@ ident(Opts) ->
 %% @doc Return an iolist of the longer ident string, which will list
 %% all the loaded applications, for instance:
 %%   ``crary/1.0.5 kernel/2.11.5 stdlib/1.14.5 sasl/2.1.5.1''
-%% @spec long_ident() -> iolist()
+%% @spec () -> iolist()
 long_ident() ->
     lists:map(fun ({Name, _Desc, Vsn}) ->
                       [atom_to_list(Name), $/, Vsn, $ ]
@@ -254,7 +253,7 @@ long_ident() ->
 %% @doc `Pretty print' the request: return a tuple list representing
 %% the crary_req structure in a form that will print nicely via
 %% {@link io:format/2} `~p' or {@link error_logger:error_report/1}.
-%% @spec pp(crary_req()) -> list()
+%% @spec (crary_req()) -> list()
 pp(#crary_req{} = Req) ->
     [{method, Req#crary_req.method},
      {uri, Req#crary_req.uri},
@@ -292,7 +291,7 @@ pp(#crary_req{} = Req) ->
 %% You can get the same effect by throwing the tuple:
 %% ```throw({resp, Code, Headers, BodyOrF})'''
 %%
-%% @spec r(crary_req(), code(), crary_headers:headers(), BodyOrF) -> ok
+%% @spec (crary_req(), code(), crary_headers:headers(), BodyOrF) -> ok
 %%       BodyOrF = Body | F
 %%       Body = iolist()
 %%       F = function()
@@ -343,7 +342,7 @@ resp(Req, Code, Headers, BodyOrF) ->
 %% If you need to write a body or do body streaming, {@link r/4} may
 %% be a more convient function then this one.
 %%
-%% @spec r(crary_req(), code(), crary_headers:headers()) -> ok
+%% @spec (crary_req(), code(), crary_headers:headers()) -> ok
 r(Req, Code, Headers) ->
     crary_sock:write_resp_line(Req, Code),
     Headers2 = crary_headers:extend([{<<"server">>, ident(Req)},
@@ -385,7 +384,7 @@ error(Req, Code, Msg) ->
 %%  <li>```throw({resp_error, Code, Msg})'''</li>
 %% </ul>
 %%
-%% @spec error_resp(crary_req(), code(), headers(), iolist()) -> ok
+%% @spec (crary_req(), code(), headers(), iolist()) -> ok
 error_resp(Req, Code, Headers, Msg) ->
     CodeStr = code_to_binary(Code),
     r(Req, Code, [{<<"content-type">>, <<"text/html">>} | Headers],
@@ -419,7 +418,7 @@ error(Req, Code, Headers, Msg) ->
 %% You can get the same effect by throwing the tuple:
 %% ```throw(not_implemented)'''
 %%
-%% @spec not_implemented(crary_req()) -> ok
+%% @spec (crary_req()) -> ok
 not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
     error(Req, 501,
           [<<"<P>">>, Method, <<" to ">>,
@@ -433,7 +432,7 @@ not_implemented(#crary_req{uri = Uri, method = Method, vsn = Vsn} = Req) ->
 %% You can get the same effect by throwing the tuple:
 %% ```throw(bad_request)'''
 %%
-%% @spec bad_request(crary_req()) -> ok
+%% @spec (crary_req()) -> ok
 bad_request(Req) ->
     error(Req, 400,
           <<"<p>Your browser sent a request that this server
@@ -443,8 +442,7 @@ bad_request(Req) ->
 %% Error'. {@link crary_body:with_writer/2} uses this to display error
 %% messages; it can't call internal_server_error/4 as the response
 %% headers will have already been sent.
-%% @spec internal_server_error_html(crary_req(), atom(), term(), list()) ->
-%%           iolist()
+%% @spec (crary_req(), atom(), term(), list()) -> iolist()
 internal_server_error_html(#crary_req{uri = Uri, method = Method} = Req,
                           Class, Reason, Stack) ->
     error_logger:error_report([internal_server_error,
@@ -465,7 +463,7 @@ internal_server_error_html(#crary_req{uri = Uri, method = Method} = Req,
 %% on the stack that will automatically call this function if there is
 %% an uncaught exception, so you may not need to use this directly.
 %%
-%% @spec internal_server_error(crary_req(), atom(), term(), list()) -> ok
+%% @spec (crary_req(), atom(), term(), list()) -> ok
 internal_server_error(Req, Class, Reason, Stack) ->
     error(Req, 500, internal_server_error_html(Req, Class, Reason, Stack)).
 
@@ -482,7 +480,7 @@ internal_server_error(Req, Class, Reason, Stack) ->
 %% You can get the same effect by throwing the tuple:
 %% ```throw(not_found)'''
 %%
-%% @spec not_found(crary_req()) -> ok
+%% @spec (crary_req()) -> ok
 not_found(#crary_req{uri = Uri} = Req) ->
     error(Req, 404,
           [<<"<P>The requested URL ">>, Uri#uri.raw,
@@ -494,7 +492,7 @@ not_found(#crary_req{uri = Uri} = Req) ->
 %% You can get the same effect by throwing the tuple:
 %% ```throw(forbidden)'''
 %%
-%% @spec forbidden(crary_req()) -> ok
+%% @spec (crary_req()) -> ok
 forbidden(#crary_req{uri = Uri} = Req) ->
     error(Req, 403,
           [<<"<P>You don't have permission to access ">>, Uri#uri.raw,
@@ -515,7 +513,7 @@ forbidden(#crary_req{uri = Uri} = Req) ->
 %% The supported status codes are taken from:
 %%   ["http://en.wikipedia.org/wiki/List_of_HTTP_status_codes"]
 %%
-%% @spec code_to_binary(integer() | atom() | binary()) -> binary()
+%% @spec (integer() | atom() | binary()) -> binary()
 code_to_binary(100)                 -> <<"100 Continue">>;
 code_to_binary(continue)            -> <<"100 Continue">>;
 code_to_binary(101)                 -> <<"101 Switching Protocols">>;

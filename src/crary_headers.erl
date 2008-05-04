@@ -58,7 +58,7 @@
 %%%                     crary:crary_req()
 
 %% @doc Create an empty headers() structure.
-%% @spec new() -> crary_headers()
+%% @spec () -> crary_headers()
 new() ->
     gb_trees:empty().
 
@@ -67,7 +67,7 @@ new() ->
 %% tuplelists, dicts. If a socket was given the headers are {@link
 %% crary_sock:read/2. read/2} off the socket, parsed, and returned in
 %% the {@link header()}
-%% @spec new(headerish()) -> headers()
+%% @spec (headerish()) -> headers()
 new({N, Ts}) when Ts == nil, N == 0; is_tuple(Ts), N > 0 ->
     %% is gb_tree, do nothing
     {N, Ts};
@@ -81,7 +81,7 @@ new(#crary_req{headers = Headers}) ->
 
 %% @doc Create a {@link header()} structure from the socket. Opts is
 %% used to set the timeout.
-%% @spec from_sock(Sock) -> headers()
+%% @spec (Sock) -> headers()
 %%       Sock = crary_sock:sock() | crary:crary_req()
 from_sock(#crary_req{sock = S, opts = Opts}) ->
     from_sock(S, Opts);
@@ -90,7 +90,7 @@ from_sock(S) ->
 
 %% @doc Create a {@link header()} structure from the socket. Opts is
 %% used to set the timeout.
-%% @spec from_sock(Sock, crary:proplist()) -> headers()
+%% @spec (Sock, crary:proplist()) -> headers()
 %%       Sock = crary_sock:sock() | crary:crary_req()
 from_sock(S, Opts) ->
     read_headers(S, proplists:get_value(keep_alive_timeout, Opts),
@@ -120,7 +120,7 @@ parse_header(RawHeader) ->
     end.
 
 %% @doc Return {@link headers()} extended with the specified header/headers.
-%% @spec add(NameValue | [NameValue], headerish()) -> headers()
+%% @spec (NameValue | [NameValue], headerish()) -> headers()
 %%       NameValue = {Name::stringish(), Value::stringish()}
 add({Name, Value}, Headers) ->
     gb_trees:enter(to_lower_string(Name), Value, new(Headers));
@@ -128,28 +128,28 @@ add(KVList, Headers) when is_list(KVList) ->
     extend(KVList, Headers).
 
 %% @doc Return {@link headers()} extended with the specified header.
-%% @spec add(Name::stringish(), Value::stringish(), headerish()) -> headers()
+%% @spec (Name::stringish(), Value::stringish(), headerish()) -> headers()
 add(Name, Value, Headers) ->
     gb_trees:enter(to_lower_string(Name), Value, new(Headers)).
 
 %% @doc Return {@link headers()} extended with the specified headers.
-%% @spec extend([{Name::stringish(), Value::stringish()}], headerish()) ->
-%%           headers()
+%% @spec ([{Name::stringish(), Value::stringish()}], headerish()) ->
+%%       headers()
 extend(KVList, Headers) ->
     lists:foldl(fun ({K, V}, Hs) ->
                         add(K, V, Hs)
                 end, new(Headers), KVList).
 
 %% @doc Return the value of the header given by the `Name'.
-%% @spec get(Name::stringish(), headerish(), Default::term()) ->
-%%           string() | Default
+%% @spec (Name::stringish(), headerish(), Default::term()) ->
+%%       string() | Default
 get(Name, Headers, Default) when is_list(Name) ->
     try gb_trees:get(to_lower_string(Name), new(Headers))
     catch error:function_clause -> Default
     end.
 
 %% @doc Return the value of the header given by the `Name'.
-%% @spec get(Name::stringish(), headerish()) -> string()
+%% @spec (Name::stringish(), headerish()) -> string()
 %% @throws {crary_headers_error, {name_not_found, Name}}
 get(Name, Headers) when is_list(Name) ->
     try gb_trees:get(to_lower_string(Name), new(Headers))
@@ -158,18 +158,18 @@ get(Name, Headers) when is_list(Name) ->
     end.
 
 %% @doc Does `Headers' include `Name'?
-%% @spec has(Name::stringish(), headerish()) -> bool()
+%% @spec (Name::stringish(), headerish()) -> bool()
 has(Name, Headers) ->
     gb_trees:is_defined(to_lower_string(Name), new(Headers)).
 
 %% @doc Does `Headers' include `Name'?
-%% @spec lookup(Name::stringish(), headerish()) -> bool()
+%% @spec (Name::stringish(), headerish()) -> bool()
 lookup(Name, Headers) ->
     gb_trees:lookup(Name, new(Headers)).
 
 %% @doc Convert `Headers' to a {@link tuple_list()}. Perfect for
 %% printing or looping over.
-%% @spec to_list(headerish()) -> tuple_list()
+%% @spec (headerish()) -> tuple_list()
 %% @see foreach/2
 to_list(Headers) when is_list(Headers) ->
     Headers;
@@ -179,12 +179,12 @@ to_list(Headers) ->
     gb_trees:to_list(new(Headers)).
 
 %% @doc Call `F({K, V})' for each header in `Headers'.
-%% @spec foreach(function(), headerish()) -> ok
+%% @spec (function(), headerish()) -> ok
 foreach(F, Headers) ->
     lists:foreach(F, to_list(Headers)).
 
 %% @doc Write `Headers' to socket, including terminating blank line.
-%% @spec write(crary_sock:sock() | crary:crary_req(), headerish()) -> ok
+%% @spec (crary_sock:sock() | crary:crary_req(), headerish()) -> ok
 write(S, Headers) ->
     foreach(fun ({K, V}) -> crary_sock:write(S, [K, $:, $\ , V, ?EOL]) end,
             Headers),

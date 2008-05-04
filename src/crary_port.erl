@@ -49,19 +49,19 @@
 
 %% @doc Start a crary_port server to listen on a port. Its not
 %% preferable to call this directly; see {@link crary:start/2}
-%% @spec start_link(TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
-%%                  crary:handler()) ->
-%%           {ok, pid()} | ignore |
-%%           {error, {already_started, pid()}} | {error, term()}
+%% @spec (TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
+%%        crary:handler()) ->
+%%       {ok, pid()} | ignore |
+%%       {error, {already_started, pid()}} | {error, term()}
 start_link(IpTcpPort, Handler) ->
     start_link(IpTcpPort, Handler, []).
 
 %% @doc Start a crary_port server to listen on a port. Its not
 %% preferable to call this directly; see {@link crary:start/3}
-%% @spec start_link(TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
-%%                  crary:handler(), proplist()) ->
-%%           {ok, pid()} | ignore |
-%%           {error, {already_started, pid()}} | {error, term()}
+%% @spec (TcpPort::integer() | {inet:ip_address(), TcpPort::integer()},
+%%        crary:handler(), proplist()) ->
+%%       {ok, pid()} | ignore |
+%%       {error, {already_started, pid()}} | {error, term()}
 %% @see start_link/3
 start_link(IpTcpPort, Handler, Opts) ->
     gen_server:start_link({local, crary_name(IpTcpPort)}, ?MODULE,
@@ -71,7 +71,7 @@ start_link(IpTcpPort, Handler, Opts) ->
 %% has successfully accept(2)ed a new connection. This module can then
 %% start a new {@link crary_sock} to start listening for the next
 %% connection.
-%% @spec(pid(), pid()) -> ok()
+%% @spec (pid()) -> ok()
 accepted(ServerPid) ->
     gen_server:cast(ServerPid, {accepted, self()}).
 

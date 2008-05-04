@@ -31,9 +31,15 @@
 
 -export([rfc1123_date/0, rfc1123_date/1, spawn_link/1]).
 
+%% @doc Return a date string for "now" in the format specified by RFC1123.
+%% @spec () -> iolist()
 rfc1123_date() ->
     rfc1123_date(calendar:universal_time()).
 
+%% @doc Return a date string in the format specified by RFC1123.
+%% The time should be passed to this module in the same format the
+%% {@link calendar} module uses.
+%% @spec (calendar()) -> iolist()
 rfc1123_date({{Y, M, D} = Date, {H, N, S}}) ->
     io_lib:format("~s, ~.2.0w ~s ~b ~.2.0w:~.2.0w:~.2.0w GMT",
                   [dow_name(Date), D, moy_name(M), Y, H, N, S]).
@@ -62,8 +68,9 @@ moy_name(10) -> <<"Oct">>;
 moy_name(11) -> <<"Nov">>;
 moy_name(12) -> <<"Dec">>.
 
-%% proc_lib:spawn_link() doesn't detect uncaught throws, do so and
+%% @doc proc_lib:spawn_link() doesn't detect uncaught throws, do so and
 %% return them in a form it will detect and handle
+%% @spec (function()) -> pid()
 spawn_link(F) ->
     proc_lib:spawn_link(
       fun () ->

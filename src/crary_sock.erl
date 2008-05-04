@@ -85,16 +85,16 @@
 %%%       Milliseconds = integer()
 
 %% @doc Usually only called by crary_port to spawn/accept/process.
-%% @spec start_link(Port::pid(), ListenSock::port(),
-%%                  crary:handler(), crary:proplists()) -> pid()
+%% @spec (Port::pid(), ListenSock::port(),
+%%        crary:handler(), crary:proplists()) -> pid()
 start_link(PortPid, ListenSock, Handler, Opts) ->
     crary_util:spawn_link(
       fun() -> accept(PortPid, ListenSock, Handler, Opts) end).
 
 %% @private
 %% @doc accept() on the socket and process resulting connection.
-%% @spec accept(Port::pid(), ListenSock::port(),
-%%              crary:handler(), crary:proplist()) -> none()
+%% @spec (Port::pid(), ListenSock::port(),
+%%        crary:handler(), crary:proplist()) -> none()
 accept(PortPid, ListenSock, Handler, Opts) ->
     case gen_tcp:accept(ListenSock) of
         {ok, Sock} ->
@@ -108,8 +108,7 @@ accept(PortPid, ListenSock, Handler, Opts) ->
 %% @private
 %% @doc create processes for, link-together, and start the writer,
 %% reader, and controller
-%% @spec start_ctrl_with_wrapped_sock(Sock::port(), crary:handler(),
-%%                                    crary:proplist()) -> none()
+%% @spec (Sock::port(), crary:handler(), crary:proplist()) -> none()
 start_ctrl_with_wrapped_sock(Sock, Handler, Opts) ->
     Ctrl = make_ref(),
     RPid = start_link_r(Sock, Ctrl, self()),
@@ -128,7 +127,7 @@ new_sock(RPid, WPid, Ctrl, Sock) ->
 
 %% @private
 %% @doc start the reader process by taking over this process
-%% @spec start_r(Sock::port(), Ctrl::reference(), Writer::pid()) -> none()
+%% @spec (Sock::port(), Ctrl::reference(), Writer::pid()) -> none()
 start_link_r(Sock, Ctrl, W) ->
     crary_util:spawn_link(
       fun () ->
@@ -142,7 +141,7 @@ start_link_r(Sock, Ctrl, W) ->
 
 %% @private
 %% @doc spawn/start the writer process
-%% @spec start_link_w(Sock::port(), Ctrl::reference(), Reader::pid()) -> none()
+%% @spec (Sock::port(), Ctrl::reference(), Reader::pid()) -> none()
 start_w(Sock, Ctrl, R) ->
     process_flag(trap_exit, true),
     w_sock_loop(#w_state{sock = Sock,
@@ -160,7 +159,7 @@ start_w(Sock, Ctrl, R) ->
 %%
 %% Only the crary_ctrl can use this function.
 %%
-%% @spec close_reader(Sock::sock() | crary:crary_req()) -> ok
+%% @spec (Sock::sock() | crary:crary_req()) -> ok
 %% @throws {crary_sock, {error_closing_sock, Reason::term()}}
 close_reader(#crary_req{sock = S}) ->
     close_reader(S);
@@ -170,7 +169,7 @@ close_reader(#sock{r = R, w = W, resp = Ctrl}) ->
     ok.
 
 %% @doc Return the next `Len' bytes read from `Sock'.
-%% @spec read(Sock::sock() | crary:crary_req(), Len::integer()) -> binary()
+%% @spec (Sock::sock() | crary:crary_req(), Len::integer()) -> binary()
 %% @throws {crary_sock, eof} | {crary_sock, {read_error, Reason::term()}}
 %% @see read/3
 read(S, Len) ->
@@ -182,8 +181,8 @@ read(S, Len) ->
 %% blocking (if needed) until the next set of bytes are available and
 %% returning those regardless of size.
 %%
-%% @spec read(Sock::sock() | crary:crary_req(), Len::integer(), timeout()) ->
-%%           binary()
+%% @spec (Sock::sock() | crary:crary_req(), Len::integer(), timeout()) ->
+%%       binary()
 %% @throws {crary_sock, eof} | {crary_sock, timeout} |
 %%         {crary_sock, {read_error, Reason::term()}}
 read(#crary_req{sock = S}, Len, Timeout) ->
@@ -208,14 +207,14 @@ read(#sock{r = R, resp = Resp}, Len, Timeout) ->
     end.
 
 %% @doc Return a string of the next line read from the socket.
-%% @spec read_line(Sock::sock() | crary:crary_req()) -> string()
+%% @spec (Sock::sock() | crary:crary_req()) -> string()
 %% @throws {crary_sock, eof} | {crary_sock, {read_error, Reason::term()}}
 %% @see read_line/2
 read_line(S) ->
     read_line(S, infinity, []).
 
 %% @doc Return a string of the next line read from the socket.
-%% @spec read_line(Sock::sock() | crary:crary_req(), timeout()) -> string()
+%% @spec (Sock::sock() | crary:crary_req(), timeout()) -> string()
 %% @throws {crary_sock, eof} | {crary_sock, timeout} |
 %%         {crary_sock, {read_error, Reason::term()}}
 read_line(S, Timeout) ->
@@ -243,7 +242,7 @@ read_line(S, Timeout, Acc) ->
 
 %% @doc Read the request line from the socket.
 %% @see read_req_line/2
-%% @spec read_req_line(Sock::sock() | crary:crary_req()) ->
+%% @spec (Sock::sock() | crary:crary_req()) ->
 %%       {Method::string(), URI::string(), crary:vsn()}
 %% @throws {crary_sock, eof} | {crary_sock, timeout} |
 %%         {crary_sock, {read_error, Reason::term()}}
@@ -253,9 +252,8 @@ read_req_line(S) ->
     read_req_line(S, infinity).
 
 %% @doc Read the request line from the socket.
-%% @spec read_req_line(Sock::sock() | crary:crary_req(),
-%%                     crary:proplist() | timeout()) ->
-%%           {Method::string(), Uri::string(), crary:vsn()}
+%% @spec (Sock::sock() | crary:crary_req(), crary:proplist() | timeout()) ->
+%%       {Method::string(), Uri::string(), crary:vsn()}
 %% @throws {crary_sock, eof} | {crary_sock, timeout} |
 %%         {crary_sock, {read_error, Reason::term()}}
 read_req_line(S, Opts) when is_list(Opts) ->
@@ -277,7 +275,7 @@ unread(#sock{r = R, resp = Resp}, Data) ->
     erlang:send(R, {unread, Resp, Data}).
 
 %% @doc Write to the socket.
-%% @spec write(Sock::sock() | crary:crary_req(), Data::iolist()) -> ok
+%% @spec (Sock::sock() | crary:crary_req(), Data::iolist()) -> ok
 %% @throws {crary_sock, {write_error, Reason::term()}}
 write(#crary_req{sock = S}, Data) ->
     write(S, Data);
@@ -290,14 +288,13 @@ write(#sock{w = W, resp = Resp}, Data) ->
     end.
 
 %% @doc Write the response line to the socket.
-%% @spec write_resp_line(Sock::sock() | crary:crary_req(), crary:status()) -> ok
+%% @spec (Sock::sock() | crary:crary_req(), crary:status()) -> ok
 %% @throws {crary_sock, {write_error, Reason::term()}}
 write_resp_line(#crary_req{sock = S, vsn = Vsn}, Status) ->
     write_resp_line(S, Vsn, Status).
 
 %% @doc Write the response line to the socket.
-%% @spec write_resp_line(Sock::sock() | crary:crary_req(),
-%%                       crary:vsn(), crary:status()) -> ok
+%% @spec (Sock::sock() | crary:crary_req(), crary:vsn(), crary:status()) -> ok
 %% @throws {crary_sock, {write_error, Reason::term()}}
 write_resp_line(S, Vsn, Status) when is_atom(Status); is_integer(Status)  ->
     write_resp_line(S, Vsn, crary:code_to_binary(Status));
@@ -307,21 +304,21 @@ write_resp_line(S, Vsn, Status) ->
     write(S, [<<"HTTP/">>, crary:vsn_to_iolist(Vsn), $ , Status, ?EOL]).
 
 %% @doc Return the name of the socket's peer.
-%% @spec peer_name(Sock::sock() | crary:crary_req()) -> string()
+%% @spec (Sock::sock() | crary:crary_req()) -> string()
 %% @throws {crary_sock, {peername_error, Reason::term()}}
 peer_name(S) ->
     {Addr, _Port} = peername(S),
     Addr.
 
 %% @doc Return the port of the socket's peer.
-%% @spec peer_port(Sock::sock() | crary:crary_req()) -> integer()
+%% @spec (Sock::sock() | crary:crary_req()) -> integer()
 %% @throws {crary_sock, {peername_error, Reason::term()}}
 peer_port(S) ->
     {_Addr, Port} = peername(S),
     Port.
 
 %% @doc Return the address and port of the socket's peer.
-%% @spec peername(Sock::sock() | crary:crary_req()) -> {string(), integer()}
+%% @spec (Sock::sock() | crary:crary_req()) -> {string(), integer()}
 %% @throws {crary_sock, {peername_error, Reason::term()}}
 peername(#crary_req{sock = S}) ->
     peername(S);
@@ -332,21 +329,21 @@ peername(#sock{peername = Peername}) ->
     end.
 
 %% @doc Return the name of the socket's local side.
-%% @spec this_name(Sock::sock() | crary:crary_req()) -> string()
+%% @spec (Sock::sock() | crary:crary_req()) -> string()
 %% @throws {crary_sock, {peername_error, Reason::term()}}
 this_name(S) ->
     {Addr, _Port} = sockname(S),
     Addr.
 
 %% @doc Return the port of the socket's local side.
-%% @spec this_port(Sock::sock() | crary:crary_req()) -> integer()
+%% @spec (Sock::sock() | crary:crary_req()) -> integer()
 %% @throws {crary_sock, {peername_error, Reason::term()}}
 this_port(S) ->
     {_Addr, Port} = sockname(S),
     Port.
 
 %% @doc Return the address and port of the socket's local side.
-%% @spec sockname(Sock::sock() | crary:crary_req()) -> {string(), integer()}
+%% @spec (Sock::sock() | crary:crary_req()) -> {string(), integer()}
 %% @throws {crary_sock, {peername_error, Reason::term()}}
 sockname(#crary_req{sock = S}) ->
     sockname(S);
@@ -362,7 +359,7 @@ sockname(#sock{sockname = Sockname}) ->
 %% {@link read/3}ing for a particular request. Doing this right away allows
 %% the next pipe-lined request to start being handled.
 %%
-%% @spec done_reading(Sock::sock() | crary:crary_req()) -> ok
+%% @spec (Sock::sock() | crary:crary_req()) -> ok
 done_reading(#crary_req{sock = S}) ->
     done_reading(S);
 done_reading(#sock{r = R, resp = Resp}) ->
@@ -375,7 +372,7 @@ done_reading(#sock{r = R, resp = Resp}) ->
 %% {@link write/2}ing for a particular response. Doing this right away
 %% allows the next pipe-lined response to start being written.
 %%
-%% @spec done_writing(Sock::sock() | crary:crary_req()) -> ok
+%% @spec (Sock::sock() | crary:crary_req()) -> ok
 done_writing(#crary_req{sock = S}) ->
     done_writing(S);
 done_writing(#sock{w = W, resp = Resp}) ->
@@ -394,7 +391,7 @@ done_writing(#sock{w = W, resp = Resp}) ->
 %% handler will not need to read any body. `rw' should be used for
 %% requests such as ``PUT'' where the handler will be reading a body.
 %%
-%% @spec new_resp(Sock::sock() | crary:crary_req(), Mode) -> ok
+%% @spec (Sock::sock() | crary:crary_req(), Mode) -> ok
 %%       Mode = wo | rw
 %% @see crary_body:has_body/1
 new_resp(#crary_req{sock = S}, Mode) ->
