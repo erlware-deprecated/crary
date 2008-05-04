@@ -1,9 +1,7 @@
 * make sure we support file upload
 * credit iserve
 * should access logging be separate (a handler, or called by handlers)
-* crary_dir_listing should be split off into a seperate repository
 * is the server suppose to respond with the same vsn or the highest it supports?
-* add 2008 to copyrights
 * should there be a limit to the number of connections allowed at once?
 * rewrite chunked body reader (see todo in crary_body)
 * look into in-file 'todo's
@@ -16,7 +14,6 @@
 * methods: head, put, post,
 * can the controller pass the body size (or "chunked") to the sock so the sock
   can limit the amount that can be read
-* is it possible to keep writes safe?
 * propogate timeouts to the right places in crary_sock
 * transfer codings (3.6)
   + chunked
@@ -34,20 +31,12 @@
 * re-read rfc
 * make sure that exceptions are consistent and documented
 * make sure we aren't ending up with stale procs
+  * port is linked to writer, so we shouldn't leak file descriptors if writer
+    gets shut down
 * test chunked put
 * allow internal server errors and stuff to be overriden
 * allow internal server errors and stuff to be configured (ie is stack shown, etc)
 * document how to use port 80 and not run as root on various operating systems
-
-crary_dir_listing:
-  * html escpae file names
-  * url quote file name in ahref
-  * range (partial)
-  * would it be possible to use sendfile()?
-  * extendable list of mime types
-  * return last-modified headers
-  * support head
-  * etags
 
 potential modules:
   * webdav

@@ -25,7 +25,7 @@
 %%% @author Scott R Parish <srp@srparish.net>
 %%% @doc
 %%% @end
-%%% @copyright 2007 Scott R Parish
+%%% @copyright 2007,2008 Scott R Parish
 %%%----------------------------------------------------------------
 -module(crary_sup).
 -behaviour(supervisor).
