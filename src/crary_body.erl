@@ -53,6 +53,11 @@
 
 -record(state, {buf = []}).
 
+%% @type writer() = term().
+%%    This is the handle to the writer that {@link new_writer/1} will
+%%    return. Please treat is as a transparent value at the moment as
+%%    the implementation of it can and will change in the future.
+
 %%%====================================================================
 %%% public
 %%%====================================================================
@@ -75,7 +80,7 @@ new_reader(Req) ->
 %% `Req' that was passed to it. Don't depend on this, it will likely
 %% be changed to a pid() or similar in the future for supporting
 %% buffering or other encodings.
-%% @spec new_writer(crary:crary_req()) -> pid()
+%% @spec new_writer(crary:crary_req()) -> writer()
 %% @see with_writer/2
 %% @see crary:r/4
 new_writer(Req) ->
@@ -142,7 +147,7 @@ read_all(Req) ->
 %% @doc Write a chunk of data. At the moment, this data is immediately
 %% written as a chunk, regardless of the size. In the future writes
 %% may get buffered, probably with a configurable buffer size.
-%% @spec write(crary:crary_req(), Data::iolist()) -> ok
+%% @spec write(writer(), Data::iolist()) -> ok
 write(_Req, "") ->
     ok;
 write(#crary_req{vsn = Vsn} = Req, Data) when Vsn == {1, 0}; Vsn == {0, 9} ->
@@ -153,7 +158,7 @@ write(Req, Data) ->
 
 %% @doc Writing the closing chunk. For pre-http-1.1 streaming this also
 %% closes the socket.
-%% @spec done_writing(crary:crary_req()) -> ok
+%% @spec done_writing(writer()) -> ok
 done_writing(#crary_req{vsn = {1, 0}} = Req) ->
     %% since we were streaming, we can't keep-alive for http 1.0, even
     %% if that was requested
@@ -162,7 +167,7 @@ done_writing(Req) ->
     crary_sock:write(Req, <<"0\r\n\r\n">>).
 
 %% @doc Writing the `Trailers' and the closing chunk.
-%% @spec done_writing(crary:crary_req(), crary_headers:headerish()) -> ok
+%% @spec done_writing(writer(), crary_headers:headerish()) -> ok
 done_writing(Req, Trailers) ->
     crary_sock:write(Req, <<"0\r\n">>),
     crary_headers:write(Req, Trailers).
