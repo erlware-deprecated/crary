@@ -1,7 +1,7 @@
 %% This is the application resource file (.app file) for the crary, application.
 {application, crary,
   [{description, "An HTTP server for the REST of us"},
-   {vsn, "0.2.0"},
+   {vsn, "0.2.1"},
    {modules, [
               crary,
               crary_app,
