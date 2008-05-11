@@ -34,10 +34,11 @@
 
 -behaviour(gen_server).
 
-%%% public
+%% public
 -export([start_link/2, start_link/3, accepted/1]).
+-export([opts/1, opts/2, handler/1, handler/2]).
 
-%%% gen_server callbacks
+%% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 -export([code_change/3]).
 
@@ -75,6 +76,22 @@ start_link(IpTcpPort, Handler, Opts) ->
 accepted(ServerPid) ->
     gen_server:cast(ServerPid, {accepted, self()}).
 
+%% @private
+opts(TcpIpSpec) ->
+    gen_server:call(crary_name(TcpIpSpec), opts).
+
+%% @private
+opts(TcpIpSpec, NewOpts) ->
+    gen_server:call(crary_name(TcpIpSpec), {opts, NewOpts}).
+
+%% @private
+handler(TcpIpSpec) ->
+    gen_server:call(crary_name(TcpIpSpec), handler).
+
+%% @private
+handler(TcpIpSpec, NewHandler) ->
+    gen_server:call(crary_name(TcpIpSpec), {handler, NewHandler}).
+
 %%%====================================================================
 %%% gen_server callbacks
 %%%====================================================================
@@ -108,8 +125,14 @@ init({IpTcpPort, Handler, Opts}) ->
     end.
 
 %% @private
-handle_call(Request, _From, _State) ->
-    exit({error, {unexpected_request, Request}}).
+handle_call(opts, _From, State) ->
+    {reply, State#state.opts, State};
+handle_call({opts, NewOpts}, _From, State) ->
+    {reply, ok, State#state{opts = NewOpts}};
+handle_call(handler, _From, State) ->
+    {reply, State#state.handler, State};
+handle_call({handler, NewHandler}, _From, State) ->
+    {reply, ok, State#state{handler = NewHandler}}.
 
 %% @private
 handle_cast({accepted, _Pid}, State) ->

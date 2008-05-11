@@ -34,6 +34,7 @@
 
 % application control
 -export([start/2, start/3, start/4, stop/1, stop/2, servers/0]).
+-export([opts/1, opts/2, opts/3, handler/1, handler/2, handler/3]).
 
 % misc
 % TODO-- support long forms of the names
@@ -47,7 +48,7 @@
 -export([bad_request/1]).
 -export([internal_server_error_html/4]).
 
--export([vsn/1, method/1, uri/1, headers/1, sock/1, opts/1]).
+-export([vsn/1, method/1, uri/1, headers/1, sock/1]).
 
 -define(EOL, <<"\r\n">>).
 
@@ -190,39 +191,47 @@
 %%%       Major = integer()
 %%%       Minor = integer()
 
+%%% @type tcp_ip_spec() = TcpPort | {IpAddr,  TcpPort}
+%%      IpAddr = inet:ip_address()
+%%      TcpPort = integer()
+
 
 %%%====================================================================
 %%% Server Control APIs
 %%%====================================================================
 
-%% @doc Start a crary server listening on `TcpPort'. `Handler' will be
+%% @doc Start a crary server listening on `TcpIpSpec'. `Handler' will be
 %% called as `apply(M, F, [Req | Args])' for each request.
-%% @spec (integer(), handler()) -> pid()
-start(TcpPort, {M, F, A} = Handler)
-  when is_integer(TcpPort), is_atom(M), is_atom(F), is_list(A) ->
-    start_child(TcpPort, [TcpPort, Handler, []]);
-start(TcpPort, Handler)
-  when is_integer(TcpPort), is_function(Handler) ->
-    start_child(TcpPort, [TcpPort, Handler, []]).
+%% @spec (tcp_ip_spec(), handler()) -> pid()
+start(TcpIpSpec, {M, F, A} = Handler)
+  when is_atom(M), is_atom(F), is_list(A) ->
+    start_child(TcpIpSpec, [TcpIpSpec, Handler, []]);
+start(TcpIpSpec, Handler)
+  when is_function(Handler) ->
+    start_child(TcpIpSpec, [TcpIpSpec, Handler, []]).
 
 %% @doc Start a crary server listening on `TcpPort' of
 %% `IpAddr'. `Handler' will be called as `apply(M, F, [Req | Args])'
 %% for each request.
 %% @spec (inet:ip_address(), integer(), handler()) -> pid()
 start(IpAddr, TcpPort, {M, F, A} = Handler)
-  when is_integer(TcpPort), is_atom(M), is_atom(F), is_list(A) ->
+  when integer(TcpPort), is_atom(M), is_atom(F), is_list(A) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
 start(IpAddr, TcpPort, Handler)
   when is_integer(TcpPort), is_function(Handler) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
-%% @spec (integer(), handler(), opts()) -> pid()
-start(TcpPort, {M, F, A} = Handler, Opts)
-  when is_integer(TcpPort), is_list(Opts), is_atom(M), is_atom(F), is_list(A) ->
-    start_child(TcpPort, [TcpPort, Handler, Opts]);
-start(TcpPort, Handler, Opts)
-  when is_integer(TcpPort), is_list(Opts), is_function(Handler) ->
-    start_child(TcpPort, [TcpPort, Handler, Opts]).
+%% @spec (tcp_ip_spec(), handler(), opts()) -> pid()
+start(TcpIpSpec, {M, F, A} = Handler, Opts)
+  when is_list(Opts), is_atom(M), is_atom(F), is_list(A) ->
+    start_child(TcpIpSpec, [TcpIpSpec, Handler, Opts]);
+start(TcpIpSpec, Handler, Opts)
+  when is_list(Opts), is_function(Handler) ->
+    start_child(TcpIpSpec, [TcpIpSpec, Handler, Opts]).
 
+%% @doc Start a crary server listening on `TcpPort' of
+%% `IpAddr'. `Handler' will be called as `apply(M, F, [Req | Args])'
+%% for each request.
+%% @spec (inet:ip_address(), integer(), handler(), opts()) -> pid()
 start(IpAddr, TcpPort, {M, F, A} = Handler, Opts)
   when is_integer(TcpPort), is_list(Opts), is_atom(M), is_atom(F), is_list(A) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, Opts]);
@@ -230,6 +239,7 @@ start(IpAddr, TcpPort, Handler, Opts)
   when is_integer(TcpPort), is_list(Opts), is_function(Handler) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, Opts]).
 
+%% @private
 start_child(Ident, Args) ->
     case supervisor:start_child(crary_sup,
                                 {Ident,
@@ -240,10 +250,10 @@ start_child(Ident, Args) ->
     end.
 
 %% @doc Stop the crary server that's running on `TcpPort'.
-%% @spec (TcpPort::integer()) -> ok
-stop(Ident) ->
-    ok = supervisor:terminate_child(crary_sup, Ident),
-    ok = supervisor:delete_child(crary_sup, Ident).
+%% @spec (tcp_ip_spec()) -> ok
+stop(TcpIpSpec) ->
+    ok = supervisor:terminate_child(crary_sup, TcpIpSpec),
+    ok = supervisor:delete_child(crary_sup, TcpIpSpec).
 
 %% @doc Stop the crary server that's running on `TcpPort' of `IpAddr'.
 %% @spec (inet:ip_address(), integer()) -> ok
@@ -251,10 +261,50 @@ stop(IpAddr, TcpPort) ->
     stop({IpAddr, TcpPort}).
 
 %% @doc Return a list of crary servers (as ports) currently running.
-%% @spec () -> [TcpPort::integer()]
+%% @spec () -> [tcp_ip_spec()]
 servers() ->
     lists:map(fun ({Id, _Child, _Type, _Modules}) -> Id end,
               supervisor:which_children(crary_sup)).
+
+
+%% @doc Return the options part of {@link crary_req()} or return the
+%% {@link opts()} currently set for the given server.
+%% @spec(E) -> opts()
+%%     E = crary_req() | tcp_ip_spec()
+opts(#crary_req{opts = Opts}) ->
+    Opts;
+opts(TcpIpSpec) ->
+    crary_port:opts(TcpIpSpec).
+
+%% @doc Return or set the {@link opts()} currently set for the given server.
+%% @spec(inet:ip_address(), integer()) -> opts().
+opts(IpAddr, TcpPort) when is_integer(TcpPort) ->
+    crary_port:opts({IpAddr, TcpPort});
+opts(TcpIpSpec, Opts) ->
+    crary_port:opts(TcpIpSpec, Opts).
+
+%% @doc Set the {@link opts} for given server to specified value.
+%% @spec(inet:ip_address(), integer(), opts()) -> ok
+opts(IpAddr, TcpPort, NewOpts) ->
+    crary_port:opts({IpAddr, TcpPort}, NewOpts).
+
+
+%% Return the {@link handler()} currently set for the given server.
+%% @spec(inet:ip_address(), integer()) -> handler().
+handler(TcpIpSpec) ->
+    crary_port:handler(TcpIpSpec).
+
+%% Return or set the {@link handler()} currently set for the given server.
+%% @spec(inet:ip_address(), integer()) -> handler().
+handler(IpAddr, TcpPort) when is_integer(TcpPort) ->
+    crary_port:handler({IpAddr, TcpPort});
+handler(TcpIpSpec, NewHandler) ->
+    crary_port:handler(TcpIpSpec, NewHandler).
+
+%% Set the {@link handler()} for the given server to specified value.
+%% @spec(inet:ip_address(), integer(), handler()) -> ok
+handler(IpAddr, TcpPort, NewHandler) ->
+    crary_port:handler({IpAddr, TcpPort}, NewHandler).
 
 %%%====================================================================
 %%% APIs for dealing with HTTP type data
@@ -717,7 +767,5 @@ headers(#crary_req{headers = Headers}) ->
 sock(#crary_req{sock = Sock}) ->
     Sock.
 
-%% @doc Return the options part of {@link crary_req()}.
-%% @spec(crary_req()) -> opts()
-opts(#crary_req{opts = Opts}) ->
-    Opts.
+%% There is a opts() form, but because of pattern matching/overloading
+%% it is defined in an earlier section of this file.
