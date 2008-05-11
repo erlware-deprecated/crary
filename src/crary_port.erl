@@ -88,10 +88,12 @@ init({IpTcpPort, Handler, Opts}) ->
                                 {IpAddr, TcpP} -> {[{ip, IpAddr}], TcpP};
                                 TcpP when is_integer(TcpP) -> {[], TcpP}
                             end,
-    case gen_tcp:listen(TcpPort, [binary,
-                                  {packet, raw},
-                                  {active, false},
-                                  {exit_on_close, false} | ListenOpts]) of
+    %% if updating this: be sure to update sock_opts/1 below
+    SockOpts = [binary,
+                {packet, raw},
+                {active, false},
+                {exit_on_close, false} | ListenOpts] ++ sock_opts(Opts),
+    case gen_tcp:listen(TcpPort, SockOpts) of
         {ok, ListenSocket} ->
             try {ok, #state{listen_socket = ListenSocket,
                             tcp_port = TcpPort,
@@ -166,3 +168,13 @@ crary_name({{A, B, C, D, E, F, G, H}, TcpPort}) ->
                        TcpPort])));
 crary_name(TcpPort) when is_integer(TcpPort) ->
     list_to_atom("crary_" ++ integer_to_list(TcpPort)).
+
+sock_opts(Opts) ->
+    lists:filter(fun (list)               -> false;
+                     ({active, _})        -> false;
+                     ({exit_on_close, _}) -> false;
+                     ({header, _})        -> false;
+                     ({packet, _})        -> false;
+                     ({packet_size, _})   -> false
+                 end,
+                 proplists:get_value(socket_opts, Opts, [])).

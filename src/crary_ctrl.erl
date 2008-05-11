@@ -39,7 +39,7 @@
          {read_timeout, 30000}, % in milliseconds
          {write_timeout, 30000}, % in milliseconds
          {max_body_size, 10 * 1024 * 1024}, % in bytes
-         {max_header_size, 10 * 1024 * 1024} % in bytes
+         {max_header_size, 1 * 1024 * 1024} % in bytes
         ]).
 
 start_link(S, Handler, Opts) ->

@@ -75,7 +75,7 @@
 %%%            accept this {@link crary_req()} record, so it should be rarely
 %%%            necessary to access this directly.</p></dd>
 %%%
-%%%        <dt>opts::{@link proplist()}</dt>
+%%%        <dt>opts::{@link opts()}</dt>
 %%%        <dd><p>The options that this server (the one for this port)
 %%%            was started with. Use the erlang `proplists' module to
 %%%            access values. Feel free to add whatever options your
@@ -133,7 +133,56 @@
 
 %%% @type code() = integer() | atom() | binary().
 %%%       For example: `404' or `not_found' or `<<"404 Not Found">>'
-%%% @type proplist() = [Key::atom() | {Key::atom(), Value::term}]
+%%% @type opts() = [Key::atom() | {Key::atom(), Value::term}].
+%%%       The options are passed in when the server is started and can be
+%%%       used to configure the TCP socket, crary internals, as well as
+%%%       handlers.
+%%%
+%%%       The option keys that crary currently recognizes are:
+%%%       <dl>
+%%%        <dt>socket_opts</dt>
+%%%        <dd>Options passed to gen_tcp when opening the socket. See
+%%%            {@link inet:setopts/2} for available options. The following
+%%%            options can not be specified as it would break crary internal
+%%%            assumptions: list, active, exit_on_close, header, packet,
+%%%            packet_size</dd>
+%%%
+%%%        <dt>keep_alive_timeout</dt>
+%%%        <dd>The number of milliseconds (or 'infinity') to wait
+%%%            between requests on a single TCP connection.<br />
+%%%            Default: 30s</dd>
+%%%
+%%%        <dt>keep_alive_max_requests</dt>
+%%%        <dd>The number of requests allowed on a single TCP connection before
+%%%            forcing it to be closed.<br />
+%%%            Default: infinity</dd>
+%%%
+%%%        <dt>read_timeout</dt>
+%%%        <dd>The longest amount of time in milliseconds (or 'infinity')
+%%%            to block for a read before closing the connection and
+%%%            throwing a timeout error.<br />
+%%%            Default: 30s</dd>
+%%%
+%%%        <dt>write_timeout</dt>
+%%%        <dd>The longest amount of time in milliseconds (or 'infinity')
+%%%            to block for a write before closing the connection and
+%%%            throwing a timeout error.<br />
+%%%            Default: 30s</dd>
+%%%
+%%%        <dt>max_body_size</dt>
+%%%        <dd>The largest body size in bytes (or 'infinity') to allow for
+%%%            a body (eg 'POST', etc). This should only cause any effect on
+%%%            crary functions that read in the whole body; streaming apis,
+%%%            as well as any handler specific body readers will not be
+%%%            limited.<br />
+%%%            Default: 10Mib</dd>
+%%%
+%%%        <dt>max_header_size</dt>
+%%%        <dd>The largest header size in bytes (or 'infinity') to allow.<br />
+%%%            Default: 1Mib</dd>
+%%%       </dl>
+%%% @end
+
 %%% @type mfa() = {Module::atom(), Function::atom(), Args::list()} | function()
 %%% @type vsn() = {Major, Minor}
 %%%       Major = integer()
@@ -164,7 +213,7 @@ start(IpAddr, TcpPort, {M, F, A} = Handler)
 start(IpAddr, TcpPort, Handler)
   when is_integer(TcpPort), is_function(Handler) ->
     start_child({IpAddr, TcpPort}, [{IpAddr, TcpPort}, Handler, []]);
-%% @spec (integer(), handler(), proplist()) -> pid()
+%% @spec (integer(), handler(), opts()) -> pid()
 start(TcpPort, {M, F, A} = Handler, Opts)
   when is_integer(TcpPort), is_list(Opts), is_atom(M), is_atom(F), is_list(A) ->
     start_child(TcpPort, [TcpPort, Handler, Opts]);
