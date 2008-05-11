@@ -47,6 +47,8 @@
 -export([bad_request/1]).
 -export([internal_server_error_html/4]).
 
+-export([vsn/1, method/1, uri/1, headers/1, sock/1, opts/1]).
+
 -define(EOL, <<"\r\n">>).
 
 %%% @type crary_req() = record().
@@ -684,3 +686,38 @@ code_to_binary(510)                 -> <<"510 Not Extended">>;
 code_to_binary(not_extended)        -> <<"510 Not Extended">>;
 code_to_binary(Code) ->
     Code.
+
+
+%%%====================================================================
+%%% APIs for working with crary records
+%%%====================================================================
+
+%% @doc Return the version part of {@link crary_req()}.
+%% @spec(crary_req()) -> vsn()
+vsn(#crary_req{vsn = Vsn}) ->
+    Vsn.
+
+%% @doc Return the method part of {@link crary_req()}, eg `"GET"'.
+%% @spec(crary_req()) -> list()
+method(#crary_req{method = Method}) ->
+    Method.
+
+%% @doc Return the uri part of {@link crary_req()}.
+%% @spec(crary_req()) -> uri:uri()
+uri(#crary_req{uri = Uri}) ->
+    Uri.
+
+%% @doc Return the headers part of {@link crary_req()}.
+%% @spec(crary_req()) -> crary_headers:headers()
+headers(#crary_req{headers = Headers}) ->
+    Headers.
+
+%% @doc Return the socket part of {@link crary_req()}.
+%% @spec(crary_req()) -> crary_sock:sock()
+sock(#crary_req{sock = Sock}) ->
+    Sock.
+
+%% @doc Return the options part of {@link crary_req()}.
+%% @spec(crary_req()) -> opts()
+opts(#crary_req{opts = Opts}) ->
+    Opts.
