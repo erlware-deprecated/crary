@@ -52,6 +52,7 @@ potential modules:
   * mod status (console of server status/state)
   * mod userdir
   * mod evasive (limit hosts per ip)
+  * crary replacements for appmon, pman, etop, et_viewer, etc <----------
 
 seperate projects:
   * url library
