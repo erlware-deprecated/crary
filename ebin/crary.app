@@ -14,8 +14,9 @@
               crary_util
              ]},
    {registered,[crary_sup]},
-   {applications, [kernel, stdlib, sasl, uri]},
-   {versioned_dependencies, [{uri, "0.1.0", gte}]},
+   {applications, [kernel, stdlib, sasl, uri, gtime]},
+   {versioned_dependencies, [{uri, "0.1.0", gte},
+                             {gtime, "0.9.4", gte}]},
    {mod, {crary_app,[]}},
    {start_phases, []}]}.
 

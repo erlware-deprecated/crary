@@ -446,9 +446,10 @@ resp(Req, Code, Headers, BodyOrF) ->
 %% @spec (crary_req(), code(), crary_headers:headers()) -> ok
 r(Req, Code, Headers) ->
     crary_sock:write_resp_line(Req, Code),
-    Headers2 = crary_headers:extend([{<<"server">>, ident(Req)},
-                                     {<<"date">>, crary_util:rfc1123_date()}],
-                                    Headers),
+    Headers2 = crary_headers:extend(
+                 [{<<"server">>, ident(Req)},
+                  {<<"date">>, gtime:gtostr(gtime:gnow(), rfc1123)}],
+                 Headers),
     crary_headers:write(Req, Headers2).
 
 %% @doc Alias for {@link r/3}
