@@ -198,6 +198,7 @@ sock_opts(Opts) ->
                      ({exit_on_close, _}) -> false;
                      ({header, _})        -> false;
                      ({packet, _})        -> false;
-                     ({packet_size, _})   -> false
+                     ({packet_size, _})   -> false;
+		     (_) -> true
                  end,
                  proplists:get_value(socket_opts, Opts, [])).
