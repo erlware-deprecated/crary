@@ -199,6 +199,6 @@ sock_opts(Opts) ->
                      ({header, _})        -> false;
                      ({packet, _})        -> false;
                      ({packet_size, _})   -> false;
-		     (_) -> true
+		     (_)                  -> true
                  end,
                  proplists:get_value(socket_opts, Opts, [])).
