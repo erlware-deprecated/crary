@@ -32,6 +32,7 @@
 -export([call_handler/2]).
 
 -include("crary.hrl").
+-include("uri.hrl").
 
 -define(OPT_DEFAULTS,
         [{keep_alive_timeout, 30000}, % in milliseconds
@@ -101,11 +102,11 @@ setup_uri(#crary_req{uri = Uri} = Req) ->
     UriRec = uri:from_http_1_1("http", crary_headers:get("host", Req), Uri),
     Req#crary_req{uri = UriRec}.
 
-call_handler(Req, Handler) ->
+call_handler(#crary_req{uri = #uri{path = Path}} = Req, Handler) ->
     try
         case Handler of
-            {M, F, Args}          -> apply(M, F, [Req | Args]);
-            F when is_function(F) -> F(Req);
+            {M, F, Args}          -> apply(M, F, [Req, Path | Args]);
+            F when is_function(F) -> F(Req, Path);
             Unknown ->
                 throw({crary_ctrl_error, {unknown_handler_type, Unknown}})
         end
